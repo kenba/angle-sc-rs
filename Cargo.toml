@@ -1,0 +1,29 @@
+[package]
+name = "angle-sc"
+version = "0.1.0"
+authors = ["Ken Barker <ken.barker@via-technology.aero>"]
+description = "A library which implements trigonometric functions with an angle represented by its sine and cosine."
+homepage = "https://github.com/kenba/angle-sc-rs"
+repository = "https://github.com/kenba/angle-sc-rs"
+readme = "README.md"
+keywords = ["geometry", "trigonometry", "angle", "degrees", "radians"]
+categories = ["mathematics", "no-std"]
+license = "MIT"
+edition = "2021"
+publish = false
+
+[dependencies]
+libm = "0.2"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+nursery = "deny"
+pedantic = "deny"
+unwrap_used = "deny"
