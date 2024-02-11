@@ -18,20 +18,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! A library which implements trigonometric functions with an angle represented by
-//! its sine and cosine.
+//! [![crates.io](https://img.shields.io/crates/v/angle-sc.svg)](https://crates.io/crates/angle-sc)
+//! [![docs.io](https://docs.rs/angle-sc/badge.svg)](https://docs.rs/angle-sc/)
+//! [![License](https://img.shields.io/badge/License-MIT-blue)](https://opensource.org/license/mit/)
+//! [![Rust](https://github.com/kenba/angle-sc-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/kenba/angle-sc-rs/actions)
+//! [![codecov](https://codecov.io/gh/kenba/angle-sc-rs/graph/badge.svg?token=6DTOY9Y4BT)](https://codecov.io/gh/kenba/angle-sc-rs)
 //!
-//! The sine and cosine of an angle can be visualised as the coordinates of a
-//! unit circle, see *Figure 1*.
+//! An angle represented by its sine and cosine.
+//! 
+//! The cosine and sine of angle *θ* can be viewed as *x* and *y* coordinates with
+//!  *θ* measured anti-clockwise from the *x* axis.  
+//!  They form a [unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
 //!
-//! ![Unit Circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
-//! *Figure 1 Unit Circle*
+//! ![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
+//! *Figure 1 Unit circle formed by sin *θ* and cos *θ**
 //!
-//! [Angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities)
-//! are used to implement the [Add](https://doc.rust-lang.org/core/ops/trait.Add.html)
-//! and [Sub](https://doc.rust-lang.org/core/ops/trait.Sub.html) traits,
-//! while [Double-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae) are used to
-//! implement the `x2` method.
+//! The `Angle` on the `opposite` side of the unit circle is calculated by simply
+//! negating the sin and cos of `Angle`.  
+//! `Angle` addition and subtraction are performed using
+//! [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+//! `Angle` `double` uses the [double-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae)
+//! and `half` uses the
+//! [half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae).  
+//! The `Angle` `<` operator compares whether an `Angle` is clockwise of the other
+//! `Angle` on the unit circle.
+//! 
+//! The `sin` and `cos` fields of `Angle` are `UnitNegRange`s:,
+//! a [newtype](https://rust-unofficial.github.io/patterns/patterns/behavioural/newtype.html)
+//! with values in the range -1.0 to +1.0 inclusive.  
+//! The `Degrees` and `Radians` newtypes are used to convert to and from `Angle`s.  
+//! The `Validate` trait is used to check that `Angle`s and `UnitNegRange`s are valid.
+//! 
+//! The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
+//! so it can be used in embedded applications.
 
 #![cfg_attr(not(test), no_std)]
 #![allow(clippy::float_cmp)]
@@ -257,14 +276,14 @@ impl Angle {
         }
     }
 
-    /// Two times the Angle.
+    /// Double the Angle.
     /// See: [Double-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae)
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
     ///
     /// let angle_30 = Angle::from(Degrees(30.0));
-    /// let result_60 = angle_30.x2();
+    /// let result_60 = angle_30.double();
     ///
     /// // Note: multiplication is not precise...
     /// // assert_eq!(Degrees(60.0), Degrees::from(result_60));
@@ -272,49 +291,32 @@ impl Angle {
     /// assert!(delta_angle <= 32.0 * std::f64::EPSILON);
     /// ```
     #[must_use]
-    pub fn x2(self) -> Self {
+    pub fn double(self) -> Self {
         Self {
             sin: trig::UnitNegRange::clamp(2.0 * self.sin.0 * self.cos.0),
             cos: trig::UnitNegRange::clamp((self.cos.0 - self.sin.0) * (self.cos.0 + self.sin.0)),
         }
     }
 
-    /// Square of the sine of half the Angle.
-    /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
+    /// Half the Angle.
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
     ///
     /// let angle_30 = Angle::from(Degrees(30.0));
     /// let angle_60 = Angle::from(Degrees(60.0));
-    /// let expected = angle_30.sin().0 * angle_30.sin().0;
-    /// let result = angle_60.sq_sine_half();
     ///
-    /// assert_eq!(expected, result);
+    /// assert_eq!(angle_30, angle_60.half());
     /// ```
     #[must_use]
-    pub fn sq_sine_half(self) -> f64 {
-        (1.0 - self.cos.0) * 0.5
-    }
-
-    /// Square of the cosine of half the Angle.
-    /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
-    /// # Examples
-    /// ```
-    /// use angle_sc::{Angle, Degrees};
-    ///
-    /// let angle_30 = Angle::from(Degrees(30.0));
-    /// let angle_60 = Angle::from(Degrees(60.0));
-    /// let expected = angle_30.cos().0 * angle_30.cos().0;
-    /// let result = angle_60.sq_cosine_half();
-    ///
-    /// // assert_eq!(expected, result);  // Does not work, not accurate enough.
-    /// let delta_result = libm::fabs(expected - result);
-    /// assert!(delta_result <= std::f64::EPSILON);
-    /// ```
-    #[must_use]
-    pub fn sq_cosine_half(self) -> f64 {
-        (1.0 + self.cos.0) * 0.5
+    pub fn half(self) -> Self {
+        Self {
+            sin: trig::UnitNegRange(libm::copysign(
+                libm::sqrt(trig::sq_sine_half(self.cos)),
+                self.sin.0,
+            )),
+            cos: trig::UnitNegRange(libm::sqrt(trig::sq_cosine_half(self.cos))),
+        }
     }
 }
 
@@ -343,8 +345,9 @@ impl Neg for Angle {
 impl Add for Angle {
     type Output = Self;
 
-    /// Add two Angles, i.e. a + b
-    /// Uses trigonometric identity functions.
+    /// Add two Angles, i.e. a + b  
+    /// Uses trigonometric identity functions, see:
+    /// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -366,8 +369,9 @@ impl Add for Angle {
 impl Sub for Angle {
     type Output = Self;
 
-    /// Subtract two Angles, i.e. a - b
-    /// Uses trigonometric identity functions.
+    /// Subtract two Angles, i.e. a - b  
+    /// Uses trigonometric identity functions, see:
+    /// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees, is_within_tolerance};
@@ -388,7 +392,9 @@ impl Sub for Angle {
 }
 
 impl PartialOrd for Angle {
-    /// Compare two Angles, i.e. a < b, returns true if b is clockwise of a.
+    /// Compare two Angles, i.e. a < b.  
+    /// It compares whether an `Angle` is clockwise of the other `Angle` on the
+    /// unit circle.  
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -403,11 +409,12 @@ impl PartialOrd for Angle {
 }
 
 impl From<Degrees> for Angle {
-    /// Construct an Angle from an angle in Degrees.
+    /// Construct an Angle from an angle in Degrees.  
     /// In order to minimize round-off errors, this function calculates sines
     /// of angles with sine values <= 1 / sqrt(2): see
-    /// <https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles>
-    /// It is based on `GeographicLib::Math::sincosd` function.
+    /// <https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles>  
+    /// It is based on 
+    /// [GeographicLib::Math::sincosd](https://github.com/geographiclib/geographiclib/blob/1b0be832df51665ebe943f6d4d72eabc0de1bb92/src/Math.cpp#L106) function.
     #[must_use]
     fn from(a: Degrees) -> Self {
         let rq = libm::remquo(a.0, 90.0);
@@ -451,7 +458,7 @@ impl From<Degrees> for Angle {
 }
 
 impl From<Radians> for Angle {
-    /// Construct an Angle from an angle in Radians.
+    /// Construct an Angle from an angle in Radians.  
     /// In order to minimize round-off errors, this function calculates sines
     /// of angles with sine values <= 1 / sqrt(2)
     #[must_use]
@@ -519,7 +526,6 @@ impl<'de> Deserialize<'de> for Angle {
 //////////////////////////////////////////////////////////////////////////////
 
 /// Return the minimum of a or b.
-#[inline]
 #[must_use]
 pub fn min<T>(a: T, b: T) -> T
 where
@@ -533,7 +539,6 @@ where
 }
 
 /// Return the maximum of a or b.
-#[inline]
 #[must_use]
 pub fn max<T>(a: T, b: T) -> T
 where
@@ -546,7 +551,7 @@ where
     }
 }
 
-#[inline]
+/// Clamp a value to lie in the range min, max inclusive.
 #[must_use]
 pub fn clamp<T>(value: T, min: T, max: T) -> T
 where
@@ -567,7 +572,7 @@ pub trait Validate {
     fn is_valid(&self) -> bool;
 }
 
-#[inline]
+/// Check whether value <= tolerance.
 #[must_use]
 pub fn is_small<T>(value: T, tolerance: T) -> bool
 where
@@ -581,7 +586,6 @@ where
 /// * `value` the value to test
 /// * `tolerance` the permitted tolerance
 /// return true if abs(reference - value) is <= tolerance
-#[inline]
 #[must_use]
 pub fn is_within_tolerance<T>(reference: T, value: T, tolerance: T) -> bool
 where
@@ -746,25 +750,21 @@ mod tests {
             120.0 * EPSILON
         ));
 
-        let result = degrees_60.x2();
+        let result = degrees_60.double();
         assert!(is_within_tolerance(
             Degrees(120.0).0,
             Degrees::from(result).0,
             120.0 * EPSILON
         ));
 
-        let result = degrees_120.x2();
+        let result = degrees_120.double();
         assert!(is_within_tolerance(
             Degrees(-120.0).0,
             Degrees::from(result).0,
             120.0 * EPSILON
         ));
 
-        let result = degrees_120.sq_sine_half();
-        assert_eq!(degrees_60.sin().0, libm::sqrt(result));
-
-        let result = degrees_120.sq_cosine_half();
-        assert_eq!(degrees_60.cos().0, libm::sqrt(result));
+        assert_eq!(-degrees_60, degrees_m120.half());
     }
 
     #[test]

@@ -81,7 +81,9 @@ impl Neg for UnitNegRange {
 }
 
 /// Swap the sine into the cosine of an Angle and vice versa.  
-/// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1
+/// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1.
+/// See:
+/// [Pythagorean identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Pythagorean_identities)  
 /// # Examples
 /// ```
 /// use angle_sc::trig::{UnitNegRange, swap_sin_cos};
@@ -94,7 +96,8 @@ pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
     UnitNegRange::clamp(libm::sqrt((1.0 - a.0) * (1.0 + a.0)))
 }
 
-/// Calculate the cosine of an Angle from it's sine and the sign of the cosine.
+/// Calculate the cosine of an Angle from it's sine and the sign of the cosine.  
+/// See: `swap_sin_cos`.
 /// * `a` the sine of the angle.
 /// * `sign` the sign of the cosine of the angle.  
 ///
@@ -111,7 +114,9 @@ pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
     UnitNegRange(libm::copysign(swap_sin_cos(a).0, sign))
 }
 
-/// Calculate the sine of the difference of two angles: a - b.
+/// Calculate the sine of the difference of two angles: a - b.  
+/// See:
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -126,7 +131,9 @@ pub fn sine_diff(
     UnitNegRange::clamp(sin_a.0 * cos_b.0 - sin_b.0 * cos_a.0)
 }
 
-/// Calculate the sine of the sum of two angles: a + b.
+/// Calculate the sine of the sum of two angles: a + b.  
+/// See:
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -141,7 +148,9 @@ pub fn sine_sum(
     sine_diff(sin_a, cos_a, -sin_b, cos_b)
 }
 
-/// Calculate the cosine of the difference of two angles: a - b.
+/// Calculate the cosine of the difference of two angles: a - b.  
+/// See:
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -156,7 +165,9 @@ pub fn cosine_diff(
     UnitNegRange::clamp(cos_a.0 * cos_b.0 + sin_a.0 * sin_b.0)
 }
 
-/// Calculate the cosine of the sum of two angles: a + b.
+/// Calculate the cosine of the sum of two angles: a + b.  
+/// See:
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -169,6 +180,21 @@ pub fn cosine_sum(
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
     cosine_diff(sin_a, cos_a, -sin_b, cos_b)
+}
+
+/// Square of the sine of half the Angle.  
+/// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
+/// # Examples
+#[must_use]
+pub fn sq_sine_half(cos: UnitNegRange) -> f64 {
+    (1.0 - cos.0) * 0.5
+}
+
+/// Square of the cosine of half the Angle.  
+/// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
+#[must_use]
+pub fn sq_cosine_half(cos: UnitNegRange) -> f64 {
+    (1.0 + cos.0) * 0.5
 }
 
 #[cfg(test)]
@@ -229,5 +255,11 @@ mod tests {
             cosine_sum(sin_60, cos_60, sin_60, cos_60).0,
             EPSILON
         ));
+
+        let result = sq_sine_half(cos_120);
+        assert_eq!(sin_60.0, libm::sqrt(result));
+
+        let result = sq_cosine_half(cos_120);
+        assert!(is_within_tolerance(cos_60.0, libm::sqrt(result), EPSILON));
     }
 }
