@@ -25,7 +25,7 @@
 //! [![codecov](https://codecov.io/gh/kenba/angle-sc-rs/graph/badge.svg?token=6DTOY9Y4BT)](https://codecov.io/gh/kenba/angle-sc-rs)
 //!
 //! An angle represented by its sine and cosine.
-//! 
+//!
 //! The cosine and sine of angle *θ* can be viewed as *x* and *y* coordinates with
 //!  *θ* measured anti-clockwise from the *x* axis.  
 //!  They form a [unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
@@ -42,13 +42,13 @@
 //! [half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae).  
 //! The `Angle` `<` operator compares whether an `Angle` is clockwise of the other
 //! `Angle` on the unit circle.
-//! 
+//!
 //! The `sin` and `cos` fields of `Angle` are `UnitNegRange`s:,
 //! a [newtype](https://rust-unofficial.github.io/patterns/patterns/behavioural/newtype.html)
 //! with values in the range -1.0 to +1.0 inclusive.  
 //! The `Degrees` and `Radians` newtypes are used to convert to and from `Angle`s.  
 //! The `Validate` trait is used to check that `Angle`s and `UnitNegRange`s are valid.
-//! 
+//!
 //! The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
 //! so it can be used in embedded applications.
 
@@ -65,8 +65,86 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Degrees(pub f64);
 
+impl Degrees {
+    /// Normalise a Degrees into the range:
+    /// -180 < value <= 180
+    /// # Examples
+    /// ```
+    /// use angle_sc::Degrees;
+    ///
+    /// assert_eq!(0.0, Degrees(-360.0).normalise().0);
+    /// assert_eq!(180.0, Degrees(-180.0).normalise().0);
+    /// assert_eq!(180.0, Degrees(180.0).normalise().0);
+    /// assert_eq!(0.0, Degrees(360.0).normalise().0);
+    /// ```
+    #[must_use]
+    pub fn normalise(&self) -> Self {
+        if self.0 <= -180.0 {
+            Self(self.0 + 360.0)
+        } else if self.0 <= 180.0 {
+            *self
+        } else {
+            Self(self.0 - 360.0)
+        }
+    }
+}
+
+impl Neg for Degrees {
+    type Output = Self;
+
+    /// An implementation of Neg for Degrees, i.e. -angle.
+    /// # Examples
+    /// ```
+    /// use angle_sc::Degrees;
+    ///
+    /// let angle_45 = Degrees(45.0);
+    /// let result_m45 = -angle_45;
+    /// assert_eq!(-45.0, result_m45.0);
+    /// ```
+    #[must_use]
+    fn neg(self) -> Self {
+        Self(0.0 - self.0)
+    }
+}
+
+impl Add for Degrees {
+    type Output = Self;
+
+    /// Add a pair of angles in Degrees, wraps around +/-180.
+    /// # Examples
+    /// ```
+    /// use angle_sc::{Degrees};
+    ///
+    /// let angle_120 = Degrees(120.0);
+    /// let result = angle_120 + angle_120;
+    /// assert_eq!(-angle_120, result);
+    /// ```
+    #[must_use]
+    fn add(self, other: Self) -> Self {
+        Self(self.0 + other.0).normalise()
+    }
+}
+
+impl Sub for Degrees {
+    type Output = Self;
+
+    /// Subtract a pair of angles in Degrees, wraps around +/-180.
+    /// # Examples
+    /// ```
+    /// use angle_sc::{Degrees};
+    ///
+    /// let angle_120 = Degrees(120.0);
+    /// let result = -angle_120 - angle_120;
+    /// assert_eq!(angle_120, result);
+    /// ```
+    #[must_use]
+    fn sub(self, other: Self) -> Self {
+        Self(self.0 - other.0).normalise()
+    }
+}
+
 /// The Radians newtype an f64.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Radians(pub f64);
 
 impl Radians {
@@ -194,7 +272,23 @@ impl Default for Angle {
     }
 }
 
+impl Validate for Angle {
+    /// Test whether an `Angle` is valid, i.e. both sin and cos are valid
+    /// `UnitNegRange`s and the length of their hypotenuse is approximately 1.0.
+    fn is_valid(&self) -> bool {
+        self.sin.is_valid()
+            && self.cos.is_valid()
+            && is_within_tolerance(1.0, libm::hypot(self.sin.0, self.cos.0), core::f64::EPSILON)
+    }
+}
+
 impl Angle {
+    /// Construct an Angle from sin and cos values.  
+    #[must_use]
+    pub const fn new(sin: trig::UnitNegRange, cos: trig::UnitNegRange) -> Self {
+        Self { sin, cos }
+    }
+
     /// Construct an Angle from y and x values.  
     /// Normalises the values.
     #[must_use]
@@ -204,10 +298,10 @@ impl Angle {
         if is_small(length, core::f64::EPSILON) {
             Self::default()
         } else {
-            Self {
-                sin: trig::UnitNegRange::clamp(y / length),
-                cos: trig::UnitNegRange::clamp(x / length),
-            }
+            Self::new(
+                trig::UnitNegRange::clamp(y / length),
+                trig::UnitNegRange::clamp(x / length),
+            )
         }
     }
 
@@ -413,7 +507,7 @@ impl From<Degrees> for Angle {
     /// In order to minimize round-off errors, this function calculates sines
     /// of angles with sine values <= 1 / sqrt(2): see
     /// <https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles>  
-    /// It is based on 
+    /// It is based on
     /// [GeographicLib::Math::sincosd](https://github.com/geographiclib/geographiclib/blob/1b0be832df51665ebe943f6d4d72eabc0de1bb92/src/Math.cpp#L106) function.
     #[must_use]
     fn from(a: Degrees) -> Self {
@@ -604,9 +698,23 @@ mod tests {
     #[test]
     fn degrees_traits() {
         let one = Degrees(1.0);
+        let two = Degrees(2.0);
 
         let one_clone = one.clone();
         assert!(one_clone == one);
+
+        let m_two = -two;
+        assert_eq!(-2.0, m_two.0);
+
+        let m_one = one + m_two;
+        assert_eq!(-1.0, m_one.0);
+
+        let d_120 = Degrees(120.0);
+        let d_m120 = Degrees(-120.0);
+
+        assert_eq!(d_m120, d_120 + d_120);
+        assert_eq!(d_120, d_m120 + d_m120);
+        assert_eq!(d_120, d_m120 - d_120);
 
         let serialized = serde_json::to_string(&one).unwrap();
         let deserialized: Degrees = serde_json::from_str(&serialized).unwrap();
@@ -630,6 +738,7 @@ mod tests {
     fn radians_traits() {
         let one = Radians(1.0);
         let two = Radians(2.0);
+        assert!(one < two);
 
         let one_clone = one.clone();
         assert!(one_clone == one);
@@ -654,11 +763,13 @@ mod tests {
         let zero = Angle::default();
         assert_eq!(0.0, zero.sin().0);
         assert_eq!(1.0, zero.cos().0);
+        assert!(zero.is_valid());
 
         let zero_clone = zero.clone();
         assert_eq!(zero, zero_clone);
 
         let degrees_m45 = Angle::from_y_x(-EPSILON, EPSILON);
+        assert!(degrees_m45.is_valid());
         assert!(is_within_tolerance(
             -FRAC_1_SQRT_2,
             degrees_m45.sin().0,
@@ -673,9 +784,11 @@ mod tests {
         assert!(degrees_m45 < zero);
 
         let too_small = Angle::from_y_x(-EPSILON / 2.0, EPSILON / 2.0);
+        assert!(too_small.is_valid());
         assert_eq!(zero, too_small);
 
         let degrees_30 = Angle::from(Radians(FRAC_PI_6));
+        assert!(degrees_30.is_valid());
         assert!(is_within_tolerance(0.5, degrees_30.sin().0, EPSILON));
         assert!(is_within_tolerance(
             0.8660254037844386,
@@ -684,6 +797,7 @@ mod tests {
         ));
 
         let degrees_60 = Angle::from(Radians(FRAC_PI_3));
+        assert!(degrees_60.is_valid());
         assert!(is_within_tolerance(
             0.8660254037844386,
             degrees_60.sin().0,
@@ -692,10 +806,12 @@ mod tests {
         assert!(is_within_tolerance(0.5, degrees_60.cos().0, EPSILON));
 
         let degrees_45 = Angle::from(Degrees(45.0));
+        assert!(degrees_45.is_valid());
         assert_eq!(FRAC_1_SQRT_2, degrees_45.sin().0);
         assert_eq!(FRAC_1_SQRT_2, degrees_45.cos().0);
 
         let degrees_m120 = Angle::from(Degrees(-120.0));
+        assert!(degrees_m120.is_valid());
         assert!(is_within_tolerance(
             -0.8660254037844386,
             degrees_m120.sin().0,
@@ -703,15 +819,16 @@ mod tests {
         ));
         assert!(is_within_tolerance(-0.5, degrees_m120.cos().0, EPSILON));
 
-        let degrees_m130 = Angle::from(Degrees(-140.0));
+        let degrees_m140 = Angle::from(Degrees(-140.0));
+        assert!(degrees_m140.is_valid());
         assert!(is_within_tolerance(
             -0.6427876096865393,
-            degrees_m130.sin().0,
+            degrees_m140.sin().0,
             EPSILON
         ));
         assert!(is_within_tolerance(
             -0.7660444431189781,
-            degrees_m130.cos().0,
+            degrees_m140.cos().0,
             EPSILON
         ));
 
