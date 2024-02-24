@@ -63,7 +63,7 @@ use num_traits::{Num, NumCast};
 use serde::{Deserialize, Serialize};
 
 /// The Degrees newtype.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Degrees<T>(pub T);
 
 impl<T: Num + Copy> Degrees<T> {
@@ -152,7 +152,7 @@ impl<T: Num + NumCast + Copy> Sub for Degrees<T> {
 }
 
 /// The Radians newtype.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 pub struct Radians<T>(pub T);
 
 impl<T: Num> Radians<T> {
@@ -262,7 +262,7 @@ impl<T: Num + NumCast + Copy> From<Radians<T>> for Degrees<T> {
 }
 
 /// An angle represented by it's sine and cosine as `UnitNegRanges`.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Angle<T> {
     /// The sine of the angle.
     sin: trig::UnitNegRange<T>,
@@ -619,6 +619,7 @@ impl<S: Num + NumCast + Copy, T: Num + NumCast + PartialOrd + Copy + Neg> From<R
     /// Construct an Angle from an angle in Radians.
     /// In order to minimize round-off errors, this function calculates sines
     /// of angles with sine values <= 1 / sqrt(2)
+    #[allow(clippy::similar_names)]
     #[must_use]
     fn from(a: Radians<S>) -> Self
     where

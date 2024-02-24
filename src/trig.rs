@@ -30,7 +30,7 @@ use num_traits::{Num, NumCast};
 
 /// The `UnitNegRange` newtype.  
 /// A valid `UnitNegRange` value lies between -1.0 and +1.0 inclusive.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 pub struct UnitNegRange<T>(pub T);
 
 impl<T: Num + NumCast + PartialOrd> UnitNegRange<T> {
