@@ -1,6 +1,6 @@
 [package]
 name = "angle-sc"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Ken Barker <ken.barker@via-technology.aero>"]
 description = "An angle represented by its sine and cosine."
 documentation = "https://docs.rs/angle-sc/"
