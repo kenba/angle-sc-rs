@@ -11,6 +11,8 @@ set namespaceSeparator ::
         --
         + abs
         + opposite
+        + quarter_turn_cw
+        + quarter_turn_ccw
         + negate_cos
         + double
         + half
