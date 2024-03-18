@@ -387,6 +387,46 @@ impl<T> Angle<T> {
         }
     }
 
+    /// A quarter turn clockwise around the circle, i.e. + 90 degrees.
+    /// # Examples
+    /// ```
+    /// use angle_sc::{Angle, Degrees};
+    ///
+    /// let angle_m30: Angle<f64> = Angle::from(Degrees(-30.0));
+    /// let result = angle_m30.quarter_turn_cw();
+    /// assert_eq!(Angle::from(Degrees(60.0)), result);
+    /// ```
+    #[must_use]
+    pub fn quarter_turn_cw(self) -> Self
+    where
+        T: Num + NumCast + Copy + Neg,
+    {
+        Self {
+            sin: self.cos,
+            cos: -self.sin,
+        }
+    }
+
+    /// A quarter turn counter clockwise around the circle, i.e. - 90 degrees.
+    /// # Examples
+    /// ```
+    /// use angle_sc::{Angle, Degrees};
+    ///
+    /// let angle_120: Angle<f64> = Angle::from(Degrees(120.0));
+    /// let result = angle_120.quarter_turn_ccw();
+    /// assert_eq!(Angle::from(Degrees(30.0)), result);
+    /// ```
+    #[must_use]
+    pub fn quarter_turn_ccw(self) -> Self
+    where
+        T: Num + NumCast + Copy + Neg,
+    {
+        Self {
+            sin: -self.cos,
+            cos: self.sin,
+        }
+    }
+
     /// Negate the cosine of the Angle.
     /// I.e. `PI` - `angle.radians()` for positive angles,
     ///      `angle.radians()` + `PI` for negative angles
@@ -892,6 +932,7 @@ mod tests {
 
     #[test]
     fn angle_maths() {
+        let degrees_30 = Angle::from(Degrees(30.0));
         let degrees_60: Angle<f64> = Angle::from(Degrees(60.0));
         let degrees_120: Angle<f64> = Angle::from(Degrees(120.0));
         let degrees_m120 = -degrees_120;
@@ -899,6 +940,8 @@ mod tests {
         assert!(degrees_120 < degrees_m120);
         assert_eq!(degrees_120, degrees_m120.abs());
         assert_eq!(degrees_60, degrees_m120.opposite());
+        assert_eq!(degrees_120, degrees_30.quarter_turn_cw());
+        assert_eq!(degrees_30, degrees_120.quarter_turn_ccw());
         assert_eq!(degrees_60, degrees_120.negate_cos());
 
         let result = degrees_m120 - degrees_120;

@@ -24,7 +24,7 @@
 #![allow(clippy::float_cmp)]
 #![allow(clippy::suboptimal_flops)]
 
-use crate::Validate;
+use crate::{Radians, Validate};
 use core::ops::Neg;
 use num_traits::{Num, NumCast};
 
@@ -233,6 +233,23 @@ where
     half * (one + cos.0)
 }
 
+/// Calculate the length of the adjacent side of a right angled spherical
+/// triangle, given the cosine of the angle and length of the hypotenuse.
+/// @pre 0 <= length < `PI_2`
+/// * `cos_angle` the cosine of the adjacent angle.
+/// * `length` the length of the hypotenuse
+///
+/// return the length of the opposite side.
+#[must_use]
+pub fn spherical_cosine_rule<T>(cos_angle: UnitNegRange<T>, length: Radians<T>) -> Radians<T>
+where
+    T: Num + NumCast,
+{
+    let cos: f64 = num_traits::cast(cos_angle.0).unwrap();
+    let len: f64 = num_traits::cast(length.0).unwrap();
+    Radians(num_traits::cast(libm::atan(cos * libm::tan(len))).unwrap())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,5 +318,20 @@ mod tests {
 
         let result = sq_cosine_half(cos_120);
         assert!(is_within_tolerance(cos_60.0, libm::sqrt(result), EPSILON));
+    }
+
+    #[test]
+    fn test_spherical_cosine_rule() {
+        let result = spherical_cosine_rule(UnitNegRange(0.0), Radians(1.0));
+        assert_eq!(0.0, result.0);
+
+        let result = spherical_cosine_rule(UnitNegRange(0.8660254037844386), Radians(0.5));
+        assert_eq!(0.44190663576327144, result.0);
+
+        let result = spherical_cosine_rule(UnitNegRange(0.5), Radians(1.0));
+        assert_eq!(0.66161993185017653, result.0);
+
+        let result = spherical_cosine_rule(UnitNegRange(1.0), Radians(1.0));
+        assert_eq!(1.0, result.0);
     }
 }
