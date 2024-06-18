@@ -87,6 +87,22 @@ impl Degrees {
             Self(self.0 - 360.0)
         }
     }
+
+    /// The absolute value of the angle.
+    #[must_use]
+    pub fn abs(self) -> Self {
+        Self(libm::fabs(self.0))
+    }
+
+    /// The opposite angle on the circle, i.e. +/- 180 degrees.
+    #[must_use]
+    pub fn opposite(self) -> Self {
+        Self(if 0.0 < self.0 {
+            self.0 - 180.0
+        } else {
+            self.0 + 180.0
+        })
+    }
 }
 
 impl Neg for Degrees {
@@ -168,6 +184,22 @@ impl Radians {
         } else {
             Self(self.0 - core::f64::consts::TAU)
         }
+    }
+
+    /// The absolute value of the angle.
+    #[must_use]
+    pub fn abs(self) -> Self {
+        Self(libm::fabs(self.0))
+    }
+
+    /// The opposite angle on the circle, i.e. +/- PI.
+    #[must_use]
+    pub fn opposite(self) -> Self {
+        Self(if 0.0 < self.0 {
+            self.0 - core::f64::consts::PI
+        } else {
+            self.0 + core::f64::consts::PI
+        })
     }
 }
 
@@ -329,7 +361,7 @@ impl Angle {
     #[must_use]
     pub fn abs(self) -> Self {
         Self {
-            sin: trig::UnitNegRange(libm::fabs(self.sin.0)),
+            sin: self.sin.abs(),
             cos: self.cos,
         }
     }
@@ -737,6 +769,7 @@ mod tests {
 
         let m_two = -two;
         assert_eq!(-2.0, m_two.0);
+        assert_eq!(two, m_two.abs());
 
         let m_one = one + m_two;
         assert_eq!(-1.0, m_one.0);
@@ -747,6 +780,9 @@ mod tests {
         assert_eq!(d_m120, d_120 + d_120);
         assert_eq!(d_120, d_m120 + d_m120);
         assert_eq!(d_120, d_m120 - d_120);
+
+        assert_eq!(Degrees(-60.0), d_120.opposite());
+        assert_eq!(Degrees(60.0), d_m120.opposite());
 
         let serialized = serde_json::to_string(&one).unwrap();
         let deserialized: Degrees = serde_json::from_str(&serialized).unwrap();
@@ -777,15 +813,18 @@ mod tests {
 
         let m_two = -two;
         assert_eq!(-2.0, m_two.0);
+        assert_eq!(two, m_two.abs());
 
         let m_one = one + m_two;
         assert_eq!(-1.0, m_one.0);
 
         let result_1 = m_two - two;
         assert_eq!(core::f64::consts::TAU - 4.0, result_1.0);
+        assert_eq!(core::f64::consts::PI - 4.0, result_1.opposite().0);
 
         let result_2 = two - m_two;
         assert_eq!(4.0 - core::f64::consts::TAU, result_2.0);
+        assert_eq!(4.0 - core::f64::consts::PI, result_2.opposite().0);
 
         print!("Radians: {:?}", one);
     }

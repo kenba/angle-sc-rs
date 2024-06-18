@@ -48,6 +48,12 @@ impl UnitNegRange {
     pub fn clamp(value: f64) -> Self {
         Self(clamp(value, -1.0, 1.0))
     }
+
+    /// The absolute value of the `UnitNegRange`.
+    #[must_use]
+    pub fn abs(self) -> Self {
+        Self(libm::fabs(self.0))
+    }
 }
 
 impl Validate for UnitNegRange {
@@ -217,11 +223,12 @@ mod tests {
         let one = UnitNegRange(1.0);
 
         let one_clone = one.clone();
-        assert!(one_clone == one);
+        assert_eq!(one_clone, one);
 
         let minus_one: UnitNegRange = -one;
-        assert!(minus_one == UnitNegRange(-1.0));
+        assert_eq!(minus_one, UnitNegRange(-1.0));
         assert!(minus_one < one);
+        assert_eq!(one, minus_one.abs());
 
         print!("UnitNegRange: {:?}", one);
     }
