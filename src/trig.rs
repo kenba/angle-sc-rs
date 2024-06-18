@@ -37,13 +37,12 @@ impl UnitNegRange {
     /// # Examples
     /// ```
     /// use angle_sc::trig::UnitNegRange;
-    /// use core::f64::EPSILON;
     ///
-    /// assert_eq!(-1.0, UnitNegRange::clamp(-1.0 - EPSILON).0);
+    /// assert_eq!(-1.0, UnitNegRange::clamp(-1.0 - f64::EPSILON).0);
     /// assert_eq!(-1.0, UnitNegRange::clamp(-1.0).0);
     /// assert_eq!(-0.5, UnitNegRange::clamp(-0.5).0);
     /// assert_eq!(1.0, UnitNegRange::clamp(1.0).0);
-    /// assert_eq!(1.0, UnitNegRange::clamp(1.0 + EPSILON).0);
+    /// assert_eq!(1.0, UnitNegRange::clamp(1.0 + f64::EPSILON).0);
     /// ```
     #[must_use]
     pub fn clamp(value: f64) -> Self {
@@ -58,12 +57,11 @@ impl Validate for UnitNegRange {
     /// ```
     /// use angle_sc::trig::UnitNegRange;
     /// use angle_sc::Validate;
-    /// use core::f64::EPSILON;
     ///
-    /// assert!(!UnitNegRange(-1.0 - EPSILON).is_valid());
+    /// assert!(!UnitNegRange(-1.0 - f64::EPSILON).is_valid());
     /// assert!(UnitNegRange(-1.0).is_valid());
     /// assert!(UnitNegRange(1.0).is_valid());
-    /// assert!(!(UnitNegRange(1.0 + EPSILON).is_valid()));
+    /// assert!(!(UnitNegRange(1.0 + f64::EPSILON).is_valid()));
     /// ```
     fn is_valid(&self) -> bool {
         (-1.0..=1.0).contains(&self.0)
@@ -213,7 +211,6 @@ pub fn spherical_cosine_rule(cos_angle: UnitNegRange, length: Radians) -> Radian
 mod tests {
     use super::*;
     use crate::is_within_tolerance;
-    use core::f64::EPSILON;
 
     #[test]
     fn unit_neg_range_traits() {
@@ -232,21 +229,21 @@ mod tests {
     #[test]
     fn unit_neg_range_clamp() {
         // value < -1
-        assert_eq!(-1.0, UnitNegRange::clamp(-1.0 - EPSILON).0);
+        assert_eq!(-1.0, UnitNegRange::clamp(-1.0 - f64::EPSILON).0);
         // value = -1
         assert_eq!(-1.0, UnitNegRange::clamp(-1.0).0);
         // value = 1
         assert_eq!(1.0, UnitNegRange::clamp(1.0).0);
         // value > 1
-        assert_eq!(1.0, UnitNegRange::clamp(1.0 + EPSILON).0);
+        assert_eq!(1.0, UnitNegRange::clamp(1.0 + f64::EPSILON).0);
     }
 
     #[test]
     fn unit_neg_range_is_valid() {
-        assert!(!UnitNegRange(-1.0 - EPSILON).is_valid());
+        assert!(!UnitNegRange(-1.0 - f64::EPSILON).is_valid());
         assert!(UnitNegRange(-1.0).is_valid());
         assert!(UnitNegRange(1.0).is_valid());
-        assert!(!UnitNegRange(1.0 + EPSILON).is_valid());
+        assert!(!UnitNegRange(1.0 + f64::EPSILON).is_valid());
     }
 
     #[test]
@@ -260,19 +257,23 @@ mod tests {
         assert!(is_within_tolerance(
             sin_120.0,
             sine_sum(sin_60, cos_60, sin_60, cos_60).0,
-            EPSILON
+            f64::EPSILON
         ));
         assert!(is_within_tolerance(
             cos_120.0,
             cosine_sum(sin_60, cos_60, sin_60, cos_60).0,
-            EPSILON
+            f64::EPSILON
         ));
 
         let result = sq_sine_half(cos_120);
         assert_eq!(sin_60.0, libm::sqrt(result));
 
         let result = sq_cosine_half(cos_120);
-        assert!(is_within_tolerance(cos_60.0, libm::sqrt(result), EPSILON));
+        assert!(is_within_tolerance(
+            cos_60.0,
+            libm::sqrt(result),
+            f64::EPSILON
+        ));
     }
 
     #[test]

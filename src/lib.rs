@@ -199,7 +199,7 @@ impl Add for Radians {
     ///
     /// let angle_120 = Radians(2.0 * core::f64::consts::FRAC_PI_3);
     /// let result = angle_120 + angle_120;
-    /// assert!(is_within_tolerance(-2.0 * core::f64::consts::FRAC_PI_3, result.0,  4.0 * core::f64::EPSILON));
+    /// assert!(is_within_tolerance(-2.0 * core::f64::consts::FRAC_PI_3, result.0,  4.0 * f64::EPSILON));
     /// ```
     #[must_use]
     fn add(self, other: Self) -> Self {
@@ -218,7 +218,7 @@ impl Sub for Radians {
     /// let angle_120 = Radians(2.0 * core::f64::consts::FRAC_PI_3);
     /// let angle_m120 = -angle_120;
     /// let result = angle_m120 - angle_120;
-    /// assert!(is_within_tolerance(angle_120.0, result.0,  4.0 * core::f64::EPSILON));
+    /// assert!(is_within_tolerance(angle_120.0, result.0,  4.0 * f64::EPSILON));
     /// ```
     #[must_use]
     fn sub(self, other: Self) -> Self {
@@ -278,7 +278,7 @@ impl Validate for Angle {
     fn is_valid(&self) -> bool {
         self.sin.is_valid()
             && self.cos.is_valid()
-            && is_within_tolerance(1.0, libm::hypot(self.sin.0, self.cos.0), core::f64::EPSILON)
+            && is_within_tolerance(1.0, libm::hypot(self.sin.0, self.cos.0), f64::EPSILON)
     }
 }
 
@@ -295,7 +295,7 @@ impl Angle {
     pub fn from_y_x(y: f64, x: f64) -> Self {
         let length = libm::hypot(y, x);
 
-        if is_small(length, core::f64::EPSILON) {
+        if is_small(length, f64::EPSILON) {
             Self::default()
         } else {
             Self::new(
@@ -726,8 +726,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_3, FRAC_PI_6, TAU};
-    use core::f64::EPSILON;
 
     #[test]
     fn degrees_traits() {
@@ -784,10 +782,10 @@ mod tests {
         assert_eq!(-1.0, m_one.0);
 
         let result_1 = m_two - two;
-        assert_eq!(TAU - 4.0, result_1.0);
+        assert_eq!(core::f64::consts::TAU - 4.0, result_1.0);
 
         let result_2 = two - m_two;
-        assert_eq!(4.0 - TAU, result_2.0);
+        assert_eq!(4.0 - core::f64::consts::TAU, result_2.0);
 
         print!("Radians: {:?}", one);
     }
@@ -802,68 +800,72 @@ mod tests {
         let zero_clone = zero.clone();
         assert_eq!(zero, zero_clone);
 
-        let degrees_m45 = Angle::from_y_x(-EPSILON, EPSILON);
+        let degrees_m45 = Angle::from_y_x(-f64::EPSILON, f64::EPSILON);
         assert!(degrees_m45.is_valid());
         assert!(is_within_tolerance(
-            -FRAC_1_SQRT_2,
+            -core::f64::consts::FRAC_1_SQRT_2,
             degrees_m45.sin().0,
-            EPSILON
+            f64::EPSILON
         ));
         assert!(is_within_tolerance(
-            FRAC_1_SQRT_2,
+            core::f64::consts::FRAC_1_SQRT_2,
             degrees_m45.cos().0,
-            EPSILON
+            f64::EPSILON
         ));
 
         assert!(degrees_m45 < zero);
 
-        let too_small = Angle::from_y_x(-EPSILON / 2.0, EPSILON / 2.0);
+        let too_small = Angle::from_y_x(-f64::EPSILON / 2.0, f64::EPSILON / 2.0);
         assert!(too_small.is_valid());
         assert_eq!(zero, too_small);
 
-        let degrees_30 = Angle::from(Radians(FRAC_PI_6));
+        let degrees_30 = Angle::from(Radians(core::f64::consts::FRAC_PI_6));
         assert!(degrees_30.is_valid());
-        assert!(is_within_tolerance(0.5, degrees_30.sin().0, EPSILON));
+        assert!(is_within_tolerance(0.5, degrees_30.sin().0, f64::EPSILON));
         assert!(is_within_tolerance(
             0.8660254037844386,
             degrees_30.cos().0,
-            EPSILON
+            f64::EPSILON
         ));
 
-        let degrees_60 = Angle::from(Radians(FRAC_PI_3));
+        let degrees_60 = Angle::from(Radians(core::f64::consts::FRAC_PI_3));
         assert!(degrees_60.is_valid());
         assert!(is_within_tolerance(
             0.8660254037844386,
             degrees_60.sin().0,
-            EPSILON
+            f64::EPSILON
         ));
-        assert!(is_within_tolerance(0.5, degrees_60.cos().0, EPSILON));
+        assert!(is_within_tolerance(0.5, degrees_60.cos().0, f64::EPSILON));
 
         let degrees_45 = Angle::from(Degrees(45.0));
         assert!(degrees_45.is_valid());
-        assert_eq!(FRAC_1_SQRT_2, degrees_45.sin().0);
-        assert_eq!(FRAC_1_SQRT_2, degrees_45.cos().0);
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, degrees_45.sin().0);
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, degrees_45.cos().0);
 
         let degrees_m120 = Angle::from(Degrees(-120.0));
         assert!(degrees_m120.is_valid());
         assert!(is_within_tolerance(
             -0.8660254037844386,
             degrees_m120.sin().0,
-            EPSILON
+            f64::EPSILON
         ));
-        assert!(is_within_tolerance(-0.5, degrees_m120.cos().0, EPSILON));
+        assert!(is_within_tolerance(
+            -0.5,
+            degrees_m120.cos().0,
+            f64::EPSILON
+        ));
 
         let degrees_m140 = Angle::from(Degrees(-140.0));
         assert!(degrees_m140.is_valid());
         assert!(is_within_tolerance(
             -0.6427876096865393,
             degrees_m140.sin().0,
-            EPSILON
+            f64::EPSILON
         ));
         assert!(is_within_tolerance(
             -0.7660444431189781,
             degrees_m140.cos().0,
-            EPSILON
+            f64::EPSILON
         ));
 
         let serialized = serde_json::to_string(&zero).unwrap();
@@ -894,28 +896,28 @@ mod tests {
         assert!(is_within_tolerance(
             Degrees(120.0).0,
             Degrees::from(result).0,
-            120.0 * EPSILON
+            120.0 * f64::EPSILON
         ));
 
         let result = degrees_120 + degrees_120;
         assert!(is_within_tolerance(
             Degrees(-120.0).0,
             Degrees::from(result).0,
-            120.0 * EPSILON
+            120.0 * f64::EPSILON
         ));
 
         let result = degrees_60.double();
         assert!(is_within_tolerance(
             Degrees(120.0).0,
             Degrees::from(result).0,
-            120.0 * EPSILON
+            120.0 * f64::EPSILON
         ));
 
         let result = degrees_120.double();
         assert!(is_within_tolerance(
             Degrees(-120.0).0,
             Degrees::from(result).0,
-            120.0 * EPSILON
+            120.0 * f64::EPSILON
         ));
 
         assert_eq!(-degrees_60, degrees_m120.half());
@@ -924,23 +926,23 @@ mod tests {
     #[test]
     fn test_min_and_max() {
         // min -ve and +ve
-        assert_eq!(min(-1.0 + EPSILON, -1.0), -1.0);
-        assert_eq!(min(1.0, 1.0 + EPSILON), 1.0);
+        assert_eq!(min(-1.0 + f64::EPSILON, -1.0), -1.0);
+        assert_eq!(min(1.0, 1.0 + f64::EPSILON), 1.0);
         // max -ve and +ve
-        assert_eq!(max(-1.0, -1.0 - EPSILON), -1.0);
-        assert_eq!(max(1.0 - EPSILON, 1.0), 1.0);
+        assert_eq!(max(-1.0, -1.0 - f64::EPSILON), -1.0);
+        assert_eq!(max(1.0 - f64::EPSILON, 1.0), 1.0);
     }
 
     #[test]
     fn test_clamp() {
         // value < min
-        assert_eq!(clamp(-1.0 - EPSILON, -1.0, 1.0), -1.0);
+        assert_eq!(clamp(-1.0 - f64::EPSILON, -1.0, 1.0), -1.0);
         // value = min
         assert_eq!(clamp(-1.0, -1.0, 1.0), -1.0);
         // value = max
         assert_eq!(clamp(1.0, -1.0, 1.0), 1.0);
         // value > max
-        assert_eq!(clamp(1.0 + EPSILON, -1.0, 1.0), 1.0);
+        assert_eq!(clamp(1.0 + f64::EPSILON, -1.0, 1.0), 1.0);
     }
 
     #[test]
@@ -948,19 +950,19 @@ mod tests {
         // below minimum tolerance
         assert_eq!(
             false,
-            is_within_tolerance(1.0 - 2.0 * EPSILON, 1.0, EPSILON)
+            is_within_tolerance(1.0 - 2.0 * f64::EPSILON, 1.0, f64::EPSILON)
         );
 
         // within minimum tolerance
-        assert!(is_within_tolerance(1.0 - EPSILON, 1.0, EPSILON));
+        assert!(is_within_tolerance(1.0 - f64::EPSILON, 1.0, f64::EPSILON));
 
         // within maximum tolerance
-        assert!(is_within_tolerance(1.0 + EPSILON, 1.0, EPSILON));
+        assert!(is_within_tolerance(1.0 + f64::EPSILON, 1.0, f64::EPSILON));
 
         // above maximum tolerance
         assert_eq!(
             false,
-            is_within_tolerance(1.0 + 2.0 * EPSILON, 1.0, EPSILON)
+            is_within_tolerance(1.0 + 2.0 * f64::EPSILON, 1.0, f64::EPSILON)
         );
     }
 }
