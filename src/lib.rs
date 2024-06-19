@@ -448,7 +448,7 @@ impl Angle {
     /// // Note: multiplication is not precise...
     /// // assert_eq!(Degrees(60.0), Degrees::from(result_60));
     /// let delta_angle = libm::fabs(60.0 - Degrees::from(result_60).0);
-    /// assert!(delta_angle <= 32.0 * std::f64::EPSILON);
+    /// assert!(delta_angle <= 32.0 * f64::EPSILON);
     /// ```
     #[must_use]
     pub fn double(self) -> Self {
@@ -540,7 +540,7 @@ impl Sub for Angle {
     /// let angle_60 = Angle::from(Degrees(60.0));
     /// let result_30 = angle_60 - angle_30;
     ///
-    /// assert!(is_within_tolerance(Degrees(30.0).0, Degrees::from(result_30).0, 32.0 * std::f64::EPSILON));
+    /// assert!(is_within_tolerance(Degrees(30.0).0, Degrees::from(result_30).0, 32.0 * f64::EPSILON));
     /// ```
     #[must_use]
     fn sub(self, other: Self) -> Self {

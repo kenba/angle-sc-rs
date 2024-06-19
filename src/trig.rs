@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 //! The `trig` module contains the `UnitNegRange` newtype struct and
-//! trigonometric functions which use it.
+//! trigonometric functions.
 
 #![allow(clippy::float_cmp)]
 #![allow(clippy::suboptimal_flops)]
@@ -85,7 +85,7 @@ impl Neg for UnitNegRange {
 }
 
 /// Swap the sine into the cosine of an Angle and vice versa.  
-/// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1.
+/// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1.  
 /// See:
 /// [Pythagorean identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Pythagorean_identities)  
 /// # Examples
@@ -188,7 +188,6 @@ pub fn cosine_sum(
 
 /// Square of the sine of half the Angle.  
 /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
-/// # Examples
 #[must_use]
 pub fn sq_sine_half(cos: UnitNegRange) -> f64 {
     (1.0 - cos.0) * 0.5
@@ -201,9 +200,64 @@ pub fn sq_cosine_half(cos: UnitNegRange) -> f64 {
     (1.0 + cos.0) * 0.5
 }
 
+/// Calculates the length of the other side in a right angled triangle,
+/// given the length of one side and the hypotenuse.  
+/// See: [Pythagorean theorem](https://en.wikipedia.org/wiki/Pythagorean_theorem)  
+/// * `length` the length of a side.
+/// * `hypotenuse` the length of the hypotenuse
+///
+/// returns the length of the other side.
+/// zero if length >= hypotenuse or the hypotenuse if length <= 0.
+#[must_use]
+pub fn calculate_adjacent_length(length: f64, hypotenuse: f64) -> f64 {
+    if length <= 0.0 {
+        hypotenuse
+    } else if length >= hypotenuse {
+        0.0
+    } else {
+        libm::sqrt((hypotenuse - length) * (hypotenuse + length))
+    }
+}
+
+/// Calculates the length of the other side in a right angled spherical
+/// triangle, given the length of one side and the hypotenuse.  
+/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)
+/// * `a` the length of a side.
+/// * `c` the length of the hypotenuse
+///
+/// returns the length of the other side.
+/// zero if a >= c or c if a <= 0.
+#[must_use]
+pub fn spherical_adjacent_length(a: Radians, c: Radians) -> Radians {
+    if a <= Radians(0.0) {
+        c
+    } else if a >= c {
+        Radians(0.0)
+    } else {
+        Radians(libm::acos(libm::cos(c.0) / libm::cos(a.0)))
+    }
+}
+
+/// Calculates the length of the hypotenuse in a right angled spherical
+/// triangle, given the length of both sides.  
+/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)  
+/// * `a`, `b` the lengths of the sides adjacent to the right angle.
+///
+/// returns the length of the hypotenuse.
+#[must_use]
+pub fn spherical_hypotenuse_length(a: Radians, b: Radians) -> Radians {
+    if a <= Radians(0.0) {
+        b
+    } else if b <= Radians(0.0) {
+        a
+    } else {
+        Radians(libm::acos(libm::cos(a.0) * libm::cos(b.0)))
+    }
+}
+
 /// Calculate the length of the adjacent side of a right angled spherical
-/// triangle, given the cosine of the angle and length of the hypotenuse.
-/// @pre 0 <= length < `PI_2`
+/// triangle, given the cosine of the angle and length of the hypotenuse.  
+/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)  
 /// * `cos_angle` the cosine of the adjacent angle.
 /// * `length` the length of the hypotenuse
 ///
@@ -281,6 +335,71 @@ mod tests {
             libm::sqrt(result),
             f64::EPSILON
         ));
+    }
+
+    #[test]
+    fn test_calculate_adjacent_length() {
+        // length == hypotenuse
+        assert_eq!(0.0, calculate_adjacent_length(5.0, 5.0));
+
+        // length == 0.0
+        assert_eq!(5.0, calculate_adjacent_length(0.0, 5.0));
+
+        // length > hypotenuse
+        assert_eq!(0.0, calculate_adjacent_length(6.0, 5.0));
+
+        // 3, 4, 5 triangle
+        assert_eq!(3.0, calculate_adjacent_length(4.0, 5.0));
+    }
+
+    #[test]
+    fn test_spherical_adjacent_length() {
+        // length == hypotenuse
+        assert_eq!(
+            Radians(0.0),
+            spherical_adjacent_length(Radians(5.0_f64.to_radians()), Radians(5.0_f64.to_radians()))
+        );
+
+        // length == 0
+        assert_eq!(
+            Radians(5.0_f64.to_radians()),
+            spherical_adjacent_length(Radians(0.0), Radians(5.0_f64.to_radians()))
+        );
+
+        // length > hypotenuse
+        assert_eq!(
+            Radians(0.0),
+            spherical_adjacent_length(Radians(6.0_f64.to_radians()), Radians(5.0_f64.to_radians()))
+        );
+
+        // 3, 4, 5 triangle
+        let result =
+            spherical_adjacent_length(Radians(4.0_f64.to_radians()), Radians(5.0_f64.to_radians()));
+        assert!(is_within_tolerance(3.0_f64.to_radians(), result.0, 1.0e-4));
+    }
+
+    #[test]
+    fn test_spherical_hypotenuse_length() {
+        let zero = Radians(0.0);
+        let three = Radians(3.0_f64.to_radians());
+        let four = Radians(4.0_f64.to_radians());
+
+        // Negative length a
+        assert_eq!(three, spherical_hypotenuse_length(-four, three));
+        // Negative length b
+        assert_eq!(four, spherical_hypotenuse_length(four, -three));
+
+        // Zero length a
+        assert_eq!(three, spherical_hypotenuse_length(zero, three));
+        // Zero length b
+        assert_eq!(four, spherical_hypotenuse_length(four, zero));
+        // Zero length a & b
+        assert_eq!(zero, spherical_hypotenuse_length(zero, zero));
+
+        // 3, 4, 5 triangles, note 5 degrees is 0.08726646259971647 radians
+        let result = Radians(0.087240926337265545);
+        assert_eq!(result, spherical_hypotenuse_length(four, three));
+        assert_eq!(result, spherical_hypotenuse_length(three, four));
     }
 
     #[test]
