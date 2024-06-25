@@ -24,7 +24,7 @@
 #![allow(clippy::float_cmp)]
 #![allow(clippy::suboptimal_flops)]
 
-use crate::{clamp, Radians, Validate};
+use crate::{Radians, Validate};
 use core::ops::Neg;
 
 /// The `UnitNegRange` newtype an f64.  
@@ -46,7 +46,7 @@ impl UnitNegRange {
     /// ```
     #[must_use]
     pub fn clamp(value: f64) -> Self {
-        Self(clamp(value, -1.0, 1.0))
+        Self(value.clamp(-1.0, 1.0))
     }
 
     /// The absolute value of the `UnitNegRange`.

@@ -711,21 +711,6 @@ where
     }
 }
 
-/// Clamp a value to lie in the range min, max inclusive.
-#[must_use]
-pub fn clamp<T>(value: T, min: T, max: T) -> T
-where
-    T: PartialOrd + Copy,
-{
-    if value < min {
-        min
-    } else if max < value {
-        max
-    } else {
-        value
-    }
-}
-
 /// The Validate trait.
 pub trait Validate {
     /// return true if the type is valid, false otherwise.
@@ -970,18 +955,6 @@ mod tests {
         // max -ve and +ve
         assert_eq!(max(-1.0, -1.0 - f64::EPSILON), -1.0);
         assert_eq!(max(1.0 - f64::EPSILON, 1.0), 1.0);
-    }
-
-    #[test]
-    fn test_clamp() {
-        // value < min
-        assert_eq!(clamp(-1.0 - f64::EPSILON, -1.0, 1.0), -1.0);
-        // value = min
-        assert_eq!(clamp(-1.0, -1.0, 1.0), -1.0);
-        // value = max
-        assert_eq!(clamp(1.0, -1.0, 1.0), 1.0);
-        // value > max
-        assert_eq!(clamp(1.0 + f64::EPSILON, -1.0, 1.0), 1.0);
     }
 
     #[test]
