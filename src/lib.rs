@@ -201,6 +201,25 @@ impl Radians {
             self.0 + core::f64::consts::PI
         })
     }
+    /// Clamp value into the range: `0.0..=max_value`.
+    /// # Examples
+    /// ```
+    ///
+    /// use angle_sc::Radians;
+    ///
+    /// let value = Radians(-f64::EPSILON);
+    /// assert_eq!(Radians(0.0), value.clamp(Radians(1.0)));
+    /// let value = Radians(0.0);
+    /// assert_eq!(Radians(0.0), value.clamp(Radians(1.0)));
+    /// let value = Radians(1.0);
+    /// assert_eq!(Radians(1.0), value.clamp(Radians(1.0)));
+    /// let value = Radians(1.0 + f64::EPSILON);
+    /// assert_eq!(Radians(1.0), value.clamp(Radians(1.0)));
+    /// ```
+    #[must_use]
+    pub fn clamp(self, max_value: Self) -> Self {
+        Self(self.0.clamp(0.0, max_value.0))
+    }
 }
 
 impl Neg for Radians {
@@ -810,6 +829,15 @@ mod tests {
         let result_2 = two - m_two;
         assert_eq!(4.0 - core::f64::consts::TAU, result_2.0);
         assert_eq!(4.0 - core::f64::consts::PI, result_2.opposite().0);
+
+        let value = Radians(-f64::EPSILON);
+        assert_eq!(Radians(0.0), value.clamp(Radians(1.0)));
+        let value = Radians(0.0);
+        assert_eq!(Radians(0.0), value.clamp(Radians(1.0)));
+        let value = Radians(1.0);
+        assert_eq!(Radians(1.0), value.clamp(Radians(1.0)));
+        let value = Radians(1.0 + f64::EPSILON);
+        assert_eq!(Radians(1.0), value.clamp(Radians(1.0)));
 
         print!("Radians: {:?}", one);
     }
