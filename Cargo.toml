@@ -2,7 +2,7 @@
 name = "angle-sc"
 version = "0.2.0"
 authors = ["Ken Barker <ken.barker@via-technology.aero>"]
-description = "An angle represented by its sine and cosine."
+description = "A Rust library for performing accurate and efficient trigonometry calculations."
 documentation = "https://docs.rs/angle-sc/"
 homepage = "https://github.com/kenba/angle-sc-rs"
 repository = "https://github.com/kenba/angle-sc-rs"

@@ -24,33 +24,103 @@
 //! [![Rust](https://github.com/kenba/angle-sc-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/kenba/angle-sc-rs/actions)
 //! [![codecov](https://codecov.io/gh/kenba/angle-sc-rs/graph/badge.svg?token=6DTOY9Y4BT)](https://codecov.io/gh/kenba/angle-sc-rs)
 //!
-//! An angle represented by its sine and cosine.
-//!
-//! The cosine and sine of angle *θ* can be viewed as *x* and *y* coordinates with
-//!  *θ* measured anti-clockwise from the *x* axis.  
-//!  They form a [unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
-//!
+//! A Rust library for performing accurate and efficient trigonometry calculations.
+//! 
+//! ## Description
+//! The standard trigonometry functions: `sin`, `cos`, `arctan2`, etc. are inaccurate
+//! because they use parameters with `radians` units instead of `degrees`.  
+//! Since `radians` are based on the irrational number π, the standard trigonometry
+//! functions suffer from [round-off error](https://en.wikipedia.org/wiki/Round-off_error), see:  
+//! [Sin and Cos give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).
+//! 
+//! The cosine and sine of angle *θ* can be viewed as *x* and *y* coordinates,
+//! with *θ* measured anti-clockwise from the *x* axis.  
+//! They form a [unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
+//! 
 //! ![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
-//! *Figure 1 Unit circle formed by sin *θ* and cos *θ**
+//! *Figure 1 Unit circle formed by cos *θ* and sin *θ**
+//! 
+//! The accuracy of the standard trigonometry functions can be improved by considering
+//! cos *θ* and sin *θ* as the coordinates of a unit circle.
+//! 
+//! ## Features
+//! 
+//! * `Degrees`, `Radians` and `Angle` types;
+//! * functions for accurately calculating sines and cosines of angles in `Degrees` or `Radians`
+//!   using [remquo](https://pubs.opengroup.org/onlinepubs/9699919799/functions/remquo.html);
+//! * functions for accurately calculating sums and differences of angles in `Degrees` or `Radians`
+//!   wrapping around +/-180° or +/-π;
+//! * functions for accurately calculating sums and differences of `Angles` using
+//!   [trigonometric identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities);
+//! * functions for accurately and efficiently calculating sines and cosines of small angles
+//!   using the [small-angle approximation](https://en.wikipedia.org/wiki/Small-angle_approximation);
+//! * the library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html).
+//! 
+//! ## Examples
+//! 
+//! The following example shows the `round-off error` inherent in calculating angles in `radians`.  
+//! It calculates the correct sine and cosine for 60° and converts them back
+//! precisely to 60°, but it fails to convert them to the precise angle in `radians`: π/3.
+//! ```
+//! use angle_sc::{Angle, Degrees, Radians, is_within_tolerance, trig};
 //!
-//! The `Angle` on the `opposite` side of the unit circle is calculated by simply
-//! negating the sin and cos of `Angle`.  
-//! `Angle` addition and subtraction are performed using
-//! [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
-//! `Angle` `double` uses the [double-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae)
-//! and `half` uses the
-//! [half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae).  
-//! The `Angle` `<` operator compares whether an `Angle` is clockwise of the other
-//! `Angle` on the unit circle.
+//! let angle_60 = Angle::from(Degrees(60.0));
+//! assert_eq!(trig::COS_30_DEGREES, angle_60.sin().0);
+//! assert_eq!(0.5, angle_60.cos().0);
+//! assert_eq!(60.0, Degrees::from(angle_60).0);
+//! // assert_eq!(core::f64::consts::FRAC_PI_3, Radians::from(angle_60).0); // Fails because PI is irrational
+//! assert!(is_within_tolerance(
+//!    core::f64::consts::FRAC_PI_3,
+//!    Radians::from(angle_60).0,
+//!    f64::EPSILON
+//! ));
+//! ```
+//! 
+//! The following example calculates the sine and cosine between the difference
+//! of two angles in `degrees`: -155° - 175°.  
+//! It is more accurate than calling the `Angle` `From` trait in the example above
+//! with the difference in `degrees`.  
+//! It is particularly useful for implementing the
+//! [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
+//! which requires sines and cosines of both longitude and latitude differences.  
+//! Note: in this example sine and cosine of 30° are converted precisely to π/6.
+//! ```
+//! use angle_sc::{Angle, Degrees, Radians, trig};
 //!
+//! // Difference of Degrees(-155.0) - Degrees(175.0)
+//! let angle_30 = Angle::from((Degrees(-155.0), Degrees(175.0)));
+//! assert_eq!(0.5, angle_30.sin().0);
+//! assert_eq!(trig::COS_30_DEGREES, angle_30.cos().0);
+//! assert_eq!(30.0, Degrees::from(angle_30).0);
+//! assert_eq!(core::f64::consts::FRAC_PI_6, Radians::from(angle_30).0);
+//! ```
+//! 
+//! ## Design
+//! 
+//! ### Trigonometry Functions
+//! 
+//! The `trig` module contains accurate and efficient trigonometry functions.
+//! 
+//! ### Angle
+//! 
+//! The `Angle` struct represents an angle by its sine and cosine instead of in
+//! `degrees` or `radians`.
+//! 
+//! This representation an angle makes functions such as
+//! rotating an angle +/-90° around the unit circle or calculating the opposite angle;  
+//! simple, accurate and efficient since they just involve changing the signs
+//! and/or positions of the `sin` and `cos` values.
+//! 
+//! `Angle` `Add` and `Sub` traits are implemented using
+//! [angle sum and difference](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities)
+//! trigonometric identities, 
+//! while `Angle` [double](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae)
+//! and [half](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae) methods use other
+//! trigonometric identities.
+//! 
 //! The `sin` and `cos` fields of `Angle` are `UnitNegRange`s:,
 //! a [newtype](https://rust-unofficial.github.io/patterns/patterns/behavioural/newtype.html)
-//! with values in the range -1.0 to +1.0 inclusive.  
-//! The `Degrees` and `Radians` newtypes are used to convert to and from `Angle`s.  
-//! The `Validate` trait is used to check that `Angle`s and `UnitNegRange`s are valid.
-//!
-//! The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
-//! so it can be used in embedded applications.
+//! with values in the range -1.0 to +1.0 inclusive. 
 
 #![cfg_attr(not(test), no_std)]
 #![allow(clippy::float_cmp)]
@@ -126,7 +196,9 @@ impl Neg for Degrees {
 impl Add for Degrees {
     type Output = Self;
 
-    /// Add a pair of angles in Degrees, wraps around +/-180.
+    /// Add a pair of angles in Degrees, wraps around +/-180.  
+    /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
+    /// round-off error.
     /// # Examples
     /// ```
     /// use angle_sc::{Degrees};
@@ -137,14 +209,23 @@ impl Add for Degrees {
     /// ```
     #[must_use]
     fn add(self, other: Self) -> Self {
-        Self(self.0 + other.0).normalise()
+        let (s, t) = two_sum(self.0, other.0);
+        Self(if s <= -180.0 {
+            s + 360.0 + t
+        } else if s > 180.0 {
+            s - 360.0 + t
+        } else {
+            s
+        })
     }
 }
 
 impl Sub for Degrees {
     type Output = Self;
 
-    /// Subtract a pair of angles in Degrees, wraps around +/-180.
+    /// Subtract a pair of angles in Degrees, wraps around +/-180.  
+    /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
+    /// round-off error.
     /// # Examples
     /// ```
     /// use angle_sc::{Degrees};
@@ -155,7 +236,7 @@ impl Sub for Degrees {
     /// ```
     #[must_use]
     fn sub(self, other: Self) -> Self {
-        Self(self.0 - other.0).normalise()
+        self + -other
     }
 }
 
@@ -201,10 +282,10 @@ impl Radians {
             self.0 + core::f64::consts::PI
         })
     }
+
     /// Clamp value into the range: `0.0..=max_value`.
     /// # Examples
     /// ```
-    ///
     /// use angle_sc::Radians;
     ///
     /// let value = Radians(-f64::EPSILON);
@@ -243,7 +324,9 @@ impl Neg for Radians {
 impl Add for Radians {
     type Output = Self;
 
-    /// Add a pair of angles in Radians, wraps around +/-PI.
+    /// Add a pair of angles in Radians, wraps around +/-PI.  
+    /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
+    /// round-off error.
     /// # Examples
     /// ```
     /// use angle_sc::{Radians, is_within_tolerance};
@@ -254,14 +337,23 @@ impl Add for Radians {
     /// ```
     #[must_use]
     fn add(self, other: Self) -> Self {
-        Self(self.0 + other.0).normalise()
+        let (s, t) = two_sum(self.0, other.0);
+        Self(if s <= -core::f64::consts::PI {
+            s + core::f64::consts::TAU + t
+        } else if s > core::f64::consts::PI {
+            s - core::f64::consts::TAU + t
+        } else {
+            s
+        })
     }
 }
 
 impl Sub for Radians {
     type Output = Self;
 
-    /// Subtract a pair of angles in Radians,  wraps around +/-PI.
+    /// Subtract a pair of angles in Radians,  wraps around +/-PI.  
+    /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
+    /// round-off error.
     /// # Examples
     /// ```
     /// use angle_sc::{Radians, is_within_tolerance};
@@ -273,7 +365,7 @@ impl Sub for Radians {
     /// ```
     #[must_use]
     fn sub(self, other: Self) -> Self {
-        Self(self.0 - other.0).normalise()
+        self + -other
     }
 }
 
@@ -341,7 +433,7 @@ impl Angle {
     }
 
     /// Construct an Angle from y and x values.  
-    /// Normalises the values.
+    /// Normalizes the values.
     #[must_use]
     pub fn from_y_x(y: f64, x: f64) -> Self {
         let length = libm::hypot(y, x);
@@ -477,7 +569,8 @@ impl Angle {
         }
     }
 
-    /// Half the Angle.
+    /// Half of the Angle.  
+    /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -590,79 +683,47 @@ impl PartialOrd for Angle {
 impl From<Degrees> for Angle {
     /// Construct an Angle from an angle in Degrees.  
     /// In order to minimize round-off errors, this function calculates sines
-    /// of angles with sine values <= 1 / sqrt(2): see
-    /// <https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles>  
-    /// It is based on
-    /// [GeographicLib::Math::sincosd](https://github.com/geographiclib/geographiclib/blob/1b0be832df51665ebe943f6d4d72eabc0de1bb92/src/Math.cpp#L106) function.
+    /// of angles with sine values <= 1 / √2,  
+    /// see [Sin and Cos give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).
     #[must_use]
     fn from(a: Degrees) -> Self {
-        let rq = libm::remquo(a.0, 90.0);
+        let (sin, cos) = trig::sincosd(a);
+        Self { sin, cos }
+    }
+}
 
-        // Default is zero degrees.
-        let mut sin = trig::UnitNegRange(0.0);
-        let mut cos = trig::UnitNegRange(1.0);
-        let abs_angle = libm::fabs(rq.0);
-        if abs_angle > 0.0 {
-            // 45 degrees is a special case
-            if abs_angle == 45.0 {
-                cos = trig::UnitNegRange(core::f64::consts::FRAC_1_SQRT_2);
-                sin = trig::UnitNegRange(libm::copysign(cos.0, rq.0));
-            } else {
-                // 30 degrees is also a special case
-                sin = trig::UnitNegRange(if abs_angle == 30.0 {
-                    libm::copysign(0.5, rq.0)
-                } else {
-                    libm::sin(rq.0.to_radians())
-                });
-                cos = trig::swap_sin_cos(sin);
-            }
-        }
-
-        match rq.1 & 3 {
-            0 => Self { sin, cos },
-            1 => Self {
-                sin: cos,
-                cos: -sin,
-            },
-            2 => Self {
-                sin: -sin,
-                cos: -cos,
-            },
-            _ => Self {
-                sin: -cos,
-                cos: sin,
-            },
-        }
+impl From<(Degrees, Degrees)> for Angle {
+    /// Construct an Angle from the difference of a pair angles in Degrees:
+    /// a - b  
+    /// In order to minimize round-off errors, this function calculates sines
+    /// of angles with sine values <= 1 / √2
+    #[must_use]
+    fn from(params: (Degrees, Degrees)) -> Self {
+        let (sin, cos) = trig::sincosd_diff(params.0, params.1);
+        Self { sin, cos }
     }
 }
 
 impl From<Radians> for Angle {
     /// Construct an Angle from an angle in Radians.  
     /// In order to minimize round-off errors, this function calculates sines
-    /// of angles with sine values <= 1 / sqrt(2)
+    /// of angles with sine values <= 1 / √2
     #[must_use]
     fn from(a: Radians) -> Self {
-        const FRAC_3_PI_4: f64 = core::f64::consts::PI - core::f64::consts::FRAC_PI_4;
+        let (sin, cos) = trig::sincos(a);
+        Self { sin, cos }
+    }
+}
 
-        let valid_angle = a.normalise();
-        let abs_angle = libm::fabs(valid_angle.0);
-
-        let over_45_degrees = core::f64::consts::FRAC_PI_4 < abs_angle;
-        let under_135_degrees = abs_angle < FRAC_3_PI_4;
-        if over_45_degrees && under_135_degrees {
-            let cos = trig::UnitNegRange(libm::sin(core::f64::consts::FRAC_PI_2 - abs_angle));
-            let sin = trig::cosine_from_sine(trig::UnitNegRange(cos.0), valid_angle.0);
-
-            Self { sin, cos }
-        } else {
-            let sin = trig::UnitNegRange(libm::sin(valid_angle.0));
-            let cos = trig::cosine_from_sine(
-                trig::UnitNegRange(sin.0),
-                core::f64::consts::FRAC_PI_2 - abs_angle,
-            );
-
-            Self { sin, cos }
-        }
+impl From<(Radians, Radians)> for Angle {
+    /// Construct an Angle from the difference of a pair angles in Radians:
+    /// a - b  
+    /// In order to minimize round-off errors, this function calculates sines
+    /// of angles with sine values <= 1 / √2
+    #[must_use]
+    fn from(params: (Radians, Radians)) -> Self {
+        let (sin, cos) = trig::sincos_diff(params.0, params.1);
+        Self { sin, cos }
     }
 }
 
@@ -670,7 +731,7 @@ impl From<Angle> for Radians {
     /// Convert an Angle to Radians.
     #[must_use]
     fn from(a: Angle) -> Self {
-        Self(libm::atan2(a.sin.0, a.cos.0))
+        trig::arctan2(a.sin, a.cos)
     }
 }
 
@@ -678,7 +739,7 @@ impl From<Angle> for Degrees {
     /// Convert an Angle to Degrees.
     #[must_use]
     fn from(a: Angle) -> Self {
-        Self::from(Radians::from(a))
+        trig::arctan2d(a.sin, a.cos)
     }
 }
 
@@ -703,6 +764,27 @@ impl<'de> Deserialize<'de> for Angle {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
+/// Calculates floating-point sum and error.
+/// The [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm.
+/// 
+/// * `a`, `b` the floating-point numbers to add.
+///
+/// returns (a + b) and the floating-point error: $t = a + b - (a \oplus b)$  
+/// so: $a+b=s+t$.
+#[must_use]
+pub fn two_sum<T>(a: T, b: T) -> (T, T)
+where
+    T: Copy + Add<Output = T> + Sub<Output = T>,
+{
+    let s = a + b;
+    let a_prime = s - b;
+    let b_prime = s - a_prime;
+    let delta_a = a - a_prime;
+    let delta_b = b - b_prime;
+    let t = delta_a + delta_b;
+    (s, t)
+}
 
 /// Return the minimum of a or b.
 #[must_use]
@@ -749,6 +831,7 @@ where
 /// * `reference` the required value
 /// * `value` the value to test
 /// * `tolerance` the permitted tolerance
+///
 /// return true if abs(reference - value) is <= tolerance
 #[must_use]
 pub fn is_within_tolerance<T>(reference: T, value: T, tolerance: T) -> bool
@@ -764,10 +847,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn degrees_traits() {
+    fn test_degrees_traits() {
         let one = Degrees(1.0);
         let two = Degrees(2.0);
-
         let one_clone = one.clone();
         assert!(one_clone == one);
 
@@ -778,8 +860,16 @@ mod tests {
         let m_one = one + m_two;
         assert_eq!(-1.0, m_one.0);
 
+        assert_eq!(0.0, Degrees(-360.0).normalise().0);
+        assert_eq!(180.0, Degrees(-180.0).normalise().0);
+        assert_eq!(180.0, Degrees(180.0).normalise().0);
+        assert_eq!(0.0, Degrees(360.0).normalise().0);
+
         let d_120 = Degrees(120.0);
         let d_m120 = Degrees(-120.0);
+        assert_eq!(d_120, d_m120.abs());
+
+        assert_eq!(Degrees(30.0), Degrees(-155.0) - Degrees(175.0));
 
         assert_eq!(d_m120, d_120 + d_120);
         assert_eq!(d_120, d_m120 + d_m120);
@@ -807,7 +897,7 @@ mod tests {
     }
 
     #[test]
-    fn radians_traits() {
+    fn test_radians_traits() {
         let one = Radians(1.0);
         let two = Radians(2.0);
         assert!(one < two);
@@ -818,6 +908,17 @@ mod tests {
         let m_two = -two;
         assert_eq!(-2.0, m_two.0);
         assert_eq!(two, m_two.abs());
+
+        assert_eq!(0.0, Radians(-core::f64::consts::TAU).normalise().0);
+        assert_eq!(
+            core::f64::consts::PI,
+            Radians(-core::f64::consts::PI).normalise().0
+        );
+        assert_eq!(
+            core::f64::consts::PI,
+            Radians(core::f64::consts::PI).normalise().0
+        );
+        assert_eq!(0.0, Radians(core::f64::consts::TAU).normalise().0);
 
         let m_one = one + m_two;
         assert_eq!(-1.0, m_one.0);
@@ -843,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn angle_traits() {
+    fn test_angle_traits() {
         let zero = Angle::default();
         assert_eq!(0.0, zero.sin().0);
         assert_eq!(1.0, zero.cos().0);
@@ -852,73 +953,19 @@ mod tests {
         let zero_clone = zero.clone();
         assert_eq!(zero, zero_clone);
 
-        let degrees_m45 = Angle::from_y_x(-f64::EPSILON, f64::EPSILON);
-        assert!(degrees_m45.is_valid());
+        let angle_m45 = Angle::from_y_x(-f64::EPSILON, f64::EPSILON);
         assert!(is_within_tolerance(
             -core::f64::consts::FRAC_1_SQRT_2,
-            degrees_m45.sin().0,
+            angle_m45.sin().0,
             f64::EPSILON
         ));
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_1_SQRT_2,
-            degrees_m45.cos().0,
+            angle_m45.cos().0,
             f64::EPSILON
         ));
 
-        assert!(degrees_m45 < zero);
-
-        let too_small = Angle::from_y_x(-f64::EPSILON / 2.0, f64::EPSILON / 2.0);
-        assert!(too_small.is_valid());
-        assert_eq!(zero, too_small);
-
-        let degrees_30 = Angle::from(Radians(core::f64::consts::FRAC_PI_6));
-        assert!(degrees_30.is_valid());
-        assert!(is_within_tolerance(0.5, degrees_30.sin().0, f64::EPSILON));
-        assert!(is_within_tolerance(
-            0.8660254037844386,
-            degrees_30.cos().0,
-            f64::EPSILON
-        ));
-
-        let degrees_60 = Angle::from(Radians(core::f64::consts::FRAC_PI_3));
-        assert!(degrees_60.is_valid());
-        assert!(is_within_tolerance(
-            0.8660254037844386,
-            degrees_60.sin().0,
-            f64::EPSILON
-        ));
-        assert!(is_within_tolerance(0.5, degrees_60.cos().0, f64::EPSILON));
-
-        let degrees_45 = Angle::from(Degrees(45.0));
-        assert!(degrees_45.is_valid());
-        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, degrees_45.sin().0);
-        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, degrees_45.cos().0);
-
-        let degrees_m120 = Angle::from(Degrees(-120.0));
-        assert!(degrees_m120.is_valid());
-        assert!(is_within_tolerance(
-            -0.8660254037844386,
-            degrees_m120.sin().0,
-            f64::EPSILON
-        ));
-        assert!(is_within_tolerance(
-            -0.5,
-            degrees_m120.cos().0,
-            f64::EPSILON
-        ));
-
-        let degrees_m140 = Angle::from(Degrees(-140.0));
-        assert!(degrees_m140.is_valid());
-        assert!(is_within_tolerance(
-            -0.6427876096865393,
-            degrees_m140.sin().0,
-            f64::EPSILON
-        ));
-        assert!(is_within_tolerance(
-            -0.7660444431189781,
-            degrees_m140.cos().0,
-            f64::EPSILON
-        ));
+        assert!(angle_m45 < zero);
 
         let serialized = serde_json::to_string(&zero).unwrap();
         let deserialized: Angle = serde_json::from_str(&serialized).unwrap();
@@ -927,11 +974,103 @@ mod tests {
         let bad_text = "junk";
         let _serde_error = serde_json::from_str::<Angle>(&bad_text).unwrap_err();
 
-        print!("Angle: {:?}", degrees_m45);
+        print!("Angle: {:?}", angle_m45);
+    }
+    #[test]
+    fn test_angle_conversion() {
+        let zero = Angle::default();
+
+        let too_small = Angle::from_y_x(-f64::EPSILON / 2.0, f64::EPSILON / 2.0);
+        assert!(too_small.is_valid());
+        assert_eq!(zero, too_small);
+
+        let small = Angle::from(-trig::MAX_COS_ANGLE_IS_ONE);
+        assert!(small.is_valid());
+        assert_eq!(-trig::MAX_COS_ANGLE_IS_ONE.0, small.sin().0);
+        assert_eq!(1.0, small.cos().0);
+        assert_eq!(-trig::MAX_COS_ANGLE_IS_ONE.0, Radians::from(small).0);
+
+        let angle_30 = Angle::from((
+            Radians(core::f64::consts::FRAC_PI_3),
+            Radians(core::f64::consts::FRAC_PI_6),
+        ));
+        assert!(angle_30.is_valid());
+        assert_eq!(0.5, angle_30.sin().0);
+        assert_eq!(libm::sqrt(3.0) / 2.0, angle_30.cos().0);
+        assert_eq!(30.0, Degrees::from(angle_30).0);
+        assert_eq!(core::f64::consts::FRAC_PI_6, Radians::from(angle_30).0);
+
+        let angle_45 = Angle::from(Radians(core::f64::consts::FRAC_PI_4));
+        assert!(angle_45.is_valid());
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, angle_45.sin().0);
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, angle_45.cos().0);
+        assert_eq!(45.0, Degrees::from(angle_45).0);
+        assert_eq!(core::f64::consts::FRAC_PI_4, Radians::from(angle_45).0);
+
+        let angle_m45 = Angle::from(Degrees(-45.0));
+        assert!(angle_m45.is_valid());
+        assert_eq!(-core::f64::consts::FRAC_1_SQRT_2, angle_m45.sin().0);
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, angle_m45.cos().0);
+        assert_eq!(-45.0, Degrees::from(angle_m45).0);
+        assert_eq!(-core::f64::consts::FRAC_PI_4, Radians::from(angle_m45).0);
+
+        let angle_60 = Angle::from((Degrees(-140.0), Degrees(160.0)));
+        assert!(angle_60.is_valid());
+        assert_eq!(libm::sqrt(3.0) / 2.0, angle_60.sin().0);
+        assert_eq!(0.5, angle_60.cos().0);
+        assert_eq!(60.0, Degrees::from(angle_60).0);
+        // Fails because PI is irrational
+        // assert_eq!(core::f64::consts::FRAC_PI_3, Radians::from(angle_60).0);
+        assert!(is_within_tolerance(
+            core::f64::consts::FRAC_PI_3,
+            Radians::from(angle_60).0,
+            f64::EPSILON
+        ));
+
+        let angle_30 = Angle::from((Degrees(-155.0), Degrees(175.0)));
+        // assert!(angle_30.is_valid());
+        assert_eq!(0.5, angle_30.sin().0);
+        assert_eq!(libm::sqrt(3.0) / 2.0, angle_30.cos().0);
+        assert_eq!(30.0, Degrees::from(angle_30).0);
+        assert_eq!(core::f64::consts::FRAC_PI_6, Radians::from(angle_30).0);
+
+        let angle_120 = Angle::from(Degrees(120.0));
+        assert!(angle_120.is_valid());
+        assert_eq!(libm::sqrt(3.0) / 2.0, angle_120.sin().0);
+        assert_eq!(-0.5, angle_120.cos().0);
+        assert_eq!(120.0, Degrees::from(angle_120).0);
+        assert_eq!(
+            2.0 * core::f64::consts::FRAC_PI_3,
+            Radians::from(angle_120).0
+        );
+
+        let angle_m120 = Angle::from(Degrees(-120.0));
+        assert!(angle_m120.is_valid());
+        assert_eq!(-libm::sqrt(3.0) / 2.0, angle_m120.sin().0);
+        assert_eq!(-0.5, angle_m120.cos().0);
+        assert_eq!(-120.0, Degrees::from(angle_m120).0);
+        assert_eq!(
+            -2.0 * core::f64::consts::FRAC_PI_3,
+            Radians::from(angle_m120).0
+        );
+
+        let angle_m140 = Angle::from(Degrees(-140.0));
+        assert!(angle_m140.is_valid());
+        assert!(is_within_tolerance(
+            -0.6427876096865393,
+            angle_m140.sin().0,
+            f64::EPSILON
+        ));
+        assert!(is_within_tolerance(
+            -0.7660444431189781,
+            angle_m140.cos().0,
+            f64::EPSILON
+        ));
+        assert_eq!(-140.0, Degrees::from(angle_m140).0);
     }
 
     #[test]
-    fn angle_maths() {
+    fn test_angle_maths() {
         let degrees_30 = Angle::from(Degrees(30.0));
         let degrees_60 = Angle::from(Degrees(60.0));
         let degrees_120 = Angle::from(Degrees(120.0));
@@ -945,34 +1084,33 @@ mod tests {
         assert_eq!(degrees_60, degrees_120.negate_cos());
 
         let result = degrees_m120 - degrees_120;
-        assert!(is_within_tolerance(
-            Degrees(120.0).0,
-            Degrees::from(result).0,
-            120.0 * f64::EPSILON
-        ));
+        assert_eq!(Degrees(120.0).0, Degrees::from(result).0);
 
         let result = degrees_120 + degrees_120;
-        assert!(is_within_tolerance(
-            Degrees(-120.0).0,
-            Degrees::from(result).0,
-            120.0 * f64::EPSILON
-        ));
+        assert_eq!(Degrees(-120.0).0, Degrees::from(result).0);
 
         let result = degrees_60.double();
-        assert!(is_within_tolerance(
-            Degrees(120.0).0,
-            Degrees::from(result).0,
-            120.0 * f64::EPSILON
-        ));
+        assert_eq!(Degrees(120.0).0, Degrees::from(result).0);
 
         let result = degrees_120.double();
-        assert!(is_within_tolerance(
-            Degrees(-120.0).0,
-            Degrees::from(result).0,
-            120.0 * f64::EPSILON
-        ));
+        assert_eq!(Degrees(-120.0).0, Degrees::from(result).0);
 
         assert_eq!(-degrees_60, degrees_m120.half());
+    }
+
+    #[test]
+    fn test_two_sum() {
+        let result = two_sum(1.0, 1.0);
+        assert_eq!(2.0, result.0);
+        assert_eq!(0.0, result.1);
+
+        let result = two_sum(1.0, 1e-53);
+        assert_eq!(1.0, result.0);
+        assert_eq!(1e-53, result.1);
+
+        let result = two_sum(1.0, -1e-53);
+        assert_eq!(1.0, result.0);
+        assert_eq!(-1e-53, result.1);
     }
 
     #[test]
