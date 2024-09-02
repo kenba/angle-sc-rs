@@ -42,7 +42,9 @@
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
 use crate::{two_sum, Degrees, Radians, Validate};
-use core::ops::Neg;
+use core::{f64, ops::Neg};
+
+pub const SQ_EPSILON: f64 = f64::EPSILON * f64::EPSILON;
 
 /// `core::f64::consts::SQRT_3` is currently a nightly-only experimental API,  
 /// see <https://doc.rust-lang.org/core/f64/consts/constant.SQRT_3.html>
@@ -145,6 +147,56 @@ pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
 #[must_use]
 pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
     UnitNegRange(libm::copysign(swap_sin_cos(a).0, sign))
+}
+
+/// The cosecant of an angle.  
+/// 
+/// * `sin` the sine of the angle.
+/// 
+/// returns the cosecant or `None` if `sin < SQ_EPSILON`
+#[must_use]
+pub fn csc(sin: UnitNegRange) -> Option<f64> {
+    if sin.abs().0 >= SQ_EPSILON {
+        Some(1.0 / sin.0)
+    } else {
+        None
+    }
+}
+
+/// The secant of an angle.  
+/// 
+/// * `cos` the cosine of the angle.
+/// 
+/// returns the secant or `None` if `cos < SQ_EPSILON`
+#[must_use]
+pub fn sec(cos: UnitNegRange) -> Option<f64> {
+    if cos.abs().0 >= SQ_EPSILON {
+        Some(1.0 / cos.0)
+    } else {
+        None
+    }
+}
+
+/// The tangent of an angle.  
+/// 
+/// * `cos` the cosine of the angle.
+/// 
+/// returns the tangent or `None` if `cos < SQ_EPSILON`
+#[must_use]
+pub fn tan(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
+    let secant = sec(cos)?;
+    Some(sin.0 * secant)
+}
+
+/// The cotangent of an angle.  
+/// 
+/// * `sin` the sine of the angle.
+/// 
+/// returns the cotangent or `None` if `sin < SQ_EPSILON`
+#[must_use]
+pub fn cot(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
+    let cosecant = csc(sin)?;
+    Some(cos.0 * cosecant)
 }
 
 /// Calculate the sine of the difference of two angles: a - b.  
@@ -579,6 +631,19 @@ mod tests {
 
         let sin_120 = sin_60;
         let cos_120 = cosine_from_sine(sin_120, -1.0);
+
+        let recip_sq_epsilon = 1.0 / SQ_EPSILON;
+
+        let sin_msq_epsilon = UnitNegRange(-SQ_EPSILON);
+        assert_eq!(-recip_sq_epsilon, csc(sin_msq_epsilon).unwrap());
+        assert_eq!(-recip_sq_epsilon, sec(sin_msq_epsilon).unwrap());
+
+        let cos_msq_epsilon = swap_sin_cos(sin_msq_epsilon);
+        assert_eq!(1.0, sec(cos_msq_epsilon).unwrap());
+        assert_eq!(1.0, csc(cos_msq_epsilon).unwrap());
+
+        assert_eq!(-SQ_EPSILON, tan(sin_msq_epsilon, cos_msq_epsilon).unwrap());
+        assert_eq!(-recip_sq_epsilon, cot(sin_msq_epsilon, cos_msq_epsilon).unwrap());
 
         assert!(is_within_tolerance(
             sin_120.0,

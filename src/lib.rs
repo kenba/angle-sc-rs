@@ -460,6 +460,38 @@ impl Angle {
         self.cos
     }
 
+    /// The tangent of the Angle.
+    /// 
+    /// returns the tangent or `None` if `self.cos < SQ_EPSILON`
+    #[must_use]
+    pub fn tan(self) -> Option<f64> {
+        trig::tan(self.sin, self.cos)
+    }
+
+    /// The cosecant of the Angle. 
+    /// 
+    /// returns the cosecant or `None` if `self.sin < SQ_EPSILON`
+    #[must_use]
+    pub fn csc(self) -> Option<f64> {
+        trig::csc(self.sin)
+    }
+
+    /// The secant of the Angle.
+    /// 
+    /// returns the secant or `None` if `self.cos < SQ_EPSILON`
+    #[must_use]
+    pub fn sec(self) -> Option<f64> {
+        trig::sec(self.cos)
+    }
+
+    /// The cotangent of the Angle.
+    /// 
+    /// returns the cotangent or `None` if `self.sin < SQ_EPSILON`
+    #[must_use]
+    pub fn cot(self) -> Option<f64> {
+        trig::cot(self.sin, self.cos)
+    }
+
     /// The absolute value of the angle, i.e. the angle with a positive sine.
     /// # Examples
     /// ```
@@ -948,10 +980,23 @@ mod tests {
         let zero = Angle::default();
         assert_eq!(0.0, zero.sin().0);
         assert_eq!(1.0, zero.cos().0);
+        assert_eq!(0.0, zero.tan().unwrap());
+        assert!(zero.csc().is_none());
+        assert_eq!(1.0, zero.sec().unwrap());
+        assert!(zero.cot().is_none());
         assert!(zero.is_valid());
 
         let zero_clone = zero.clone();
         assert_eq!(zero, zero_clone);
+
+        let one = Angle::from_y_x(1.0, 0.0);
+        assert_eq!(1.0, one.sin().0);
+        assert_eq!(0.0, one.cos().0);
+        assert!(one.tan().is_none());
+        assert_eq!(1.0, one.csc().unwrap());
+        assert!(one.sec().is_none());
+        assert_eq!(0.0, one.cot().unwrap());
+        assert!(one.is_valid());
 
         let angle_m45 = Angle::from_y_x(-f64::EPSILON, f64::EPSILON);
         assert!(is_within_tolerance(
