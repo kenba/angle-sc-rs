@@ -136,28 +136,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub struct Degrees(pub f64);
 
 impl Degrees {
-    /// Normalise a Degrees into the range:
-    /// -180 < value <= 180
-    /// # Examples
-    /// ```
-    /// use angle_sc::Degrees;
-    ///
-    /// assert_eq!(0.0, Degrees(-360.0).normalise().0);
-    /// assert_eq!(180.0, Degrees(-180.0).normalise().0);
-    /// assert_eq!(180.0, Degrees(180.0).normalise().0);
-    /// assert_eq!(0.0, Degrees(360.0).normalise().0);
-    /// ```
-    #[must_use]
-    pub fn normalise(&self) -> Self {
-        if self.0 <= -180.0 {
-            Self(self.0 + 360.0)
-        } else if self.0 <= 180.0 {
-            *self
-        } else {
-            Self(self.0 - 360.0)
-        }
-    }
-
     /// The absolute value of the angle.
     #[must_use]
     pub fn abs(self) -> Self {
@@ -245,28 +223,6 @@ impl Sub for Degrees {
 pub struct Radians(pub f64);
 
 impl Radians {
-    /// Normalise a Radians into the range:
-    /// -`PI` < value <= `PI`
-    /// # Examples
-    /// ```
-    /// use angle_sc::Radians;
-    ///
-    /// assert_eq!(0.0, Radians(-core::f64::consts::TAU).normalise().0);
-    /// assert_eq!(core::f64::consts::PI, Radians(-core::f64::consts::PI).normalise().0);
-    /// assert_eq!(core::f64::consts::PI, Radians(core::f64::consts::PI).normalise().0);
-    /// assert_eq!(0.0, Radians(core::f64::consts::TAU).normalise().0);
-    /// ```
-    #[must_use]
-    pub fn normalise(&self) -> Self {
-        if self.0 <= -core::f64::consts::PI {
-            Self(self.0 + core::f64::consts::TAU)
-        } else if self.0 <= core::f64::consts::PI {
-            *self
-        } else {
-            Self(self.0 - core::f64::consts::TAU)
-        }
-    }
-
     /// The absolute value of the angle.
     #[must_use]
     pub fn abs(self) -> Self {
@@ -366,22 +322,6 @@ impl Sub for Radians {
     #[must_use]
     fn sub(self, other: Self) -> Self {
         self + -other
-    }
-}
-
-impl From<Radians> for Degrees {
-    /// Create an angle in Degrees from an angle in Radians.
-    /// # Examples
-    /// ```
-    /// use angle_sc::{Degrees, Radians};
-    ///
-    /// let arg = Radians(core::f64::consts::FRAC_PI_2);
-    /// let answer = Degrees::from(arg);
-    /// assert_eq!(90.0, answer.0);
-    /// ```
-    #[must_use]
-    fn from(a: Radians) -> Self {
-        Self(a.0.to_degrees())
     }
 }
 
@@ -892,11 +832,6 @@ mod tests {
         let m_one = one + m_two;
         assert_eq!(-1.0, m_one.0);
 
-        assert_eq!(0.0, Degrees(-360.0).normalise().0);
-        assert_eq!(180.0, Degrees(-180.0).normalise().0);
-        assert_eq!(180.0, Degrees(180.0).normalise().0);
-        assert_eq!(0.0, Degrees(360.0).normalise().0);
-
         let d_120 = Degrees(120.0);
         let d_m120 = Degrees(-120.0);
         assert_eq!(d_120, d_m120.abs());
@@ -921,14 +856,6 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_degrees() {
-        let arg = Radians(core::f64::consts::FRAC_PI_2);
-        let result = Degrees::from(arg);
-
-        assert_eq!(90.0, result.0);
-    }
-
-    #[test]
     fn test_radians_traits() {
         let one = Radians(1.0);
         let two = Radians(2.0);
@@ -940,17 +867,6 @@ mod tests {
         let m_two = -two;
         assert_eq!(-2.0, m_two.0);
         assert_eq!(two, m_two.abs());
-
-        assert_eq!(0.0, Radians(-core::f64::consts::TAU).normalise().0);
-        assert_eq!(
-            core::f64::consts::PI,
-            Radians(-core::f64::consts::PI).normalise().0
-        );
-        assert_eq!(
-            core::f64::consts::PI,
-            Radians(core::f64::consts::PI).normalise().0
-        );
-        assert_eq!(0.0, Radians(core::f64::consts::TAU).normalise().0);
 
         let m_one = one + m_two;
         assert_eq!(-1.0, m_one.0);
