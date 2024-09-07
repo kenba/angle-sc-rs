@@ -25,39 +25,45 @@
 //! [![codecov](https://codecov.io/gh/kenba/angle-sc-rs/graph/badge.svg?token=6DTOY9Y4BT)](https://codecov.io/gh/kenba/angle-sc-rs)
 //!
 //! A Rust library for performing accurate and efficient trigonometry calculations.
-//! 
+//!
 //! ## Description
-//! The standard trigonometry functions: `sin`, `cos`, `arctan2`, etc. are inaccurate
-//! because they use parameters with `radians` units instead of `degrees`.  
-//! Since `radians` are based on the irrational number π, the standard trigonometry
-//! functions suffer from [round-off error](https://en.wikipedia.org/wiki/Round-off_error), see:  
-//! [Sin and Cos give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).
-//! 
-//! The cosine and sine of angle *θ* can be viewed as *x* and *y* coordinates,
-//! with *θ* measured anti-clockwise from the *x* axis.  
-//! They form a [unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
-//! 
+//!
+//! The standard trigonometry functions: `sin`, `cos`, `tan`, etc.
+//! [give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).  
+//! This is because the functions use parameters with `radians` units instead of `degrees`.
+//! The conversion from `degrees` to `radians` suffers from
+//! [round-off error](https://en.wikipedia.org/wiki/Round-off_error) due to
+//! `radians` being based on the irrational number π.
+//! This library provides a [sincos](src/trig.rs#sincos) function to calculate more
+//! accurate values than the standard `sin` and `cos` functions for angles in radians  
+//! and a [sincosd](src/trig.rs#sincosd) function to calculate more accurate values
+//! for angles in degrees.
+//!
+//! The library also provides an [Angle](#angle) struct which represents an angle
+//! by its sine and cosine as the coordinates of a
+//! [unit circle](https://en.wikipedia.org/wiki/Unit_circle),  
+//! see *Figure 1*.
+//!
 //! ![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
 //! *Figure 1 Unit circle formed by cos *θ* and sin *θ**
-//! 
-//! The accuracy of the standard trigonometry functions can be improved by considering
-//! cos *θ* and sin *θ* as the coordinates of a unit circle.
-//! 
+//!
+//! The `Angle` struct enables more accurate calculations of angle rotations and
+//! conversions to and from `degrees` or `radians`.
+//!
 //! ## Features
-//! 
+//!
 //! * `Degrees`, `Radians` and `Angle` types;
 //! * functions for accurately calculating sines and cosines of angles in `Degrees` or `Radians`
-//!   using [remquo](https://pubs.opengroup.org/onlinepubs/9699919799/functions/remquo.html);
-//! * functions for accurately calculating sums and differences of angles in `Degrees` or `Radians`
-//!   wrapping around +/-180° or +/-π;
+//!     using [remquo](https://pubs.opengroup.org/onlinepubs/9699919799/functions/remquo.html);
+//! * functions for accurately calculating sines and cosines of differences of angles in `Degrees` or `Radians`
+//!     using the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm;
 //! * functions for accurately calculating sums and differences of `Angles` using
-//!   [trigonometric identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities);
-//! * functions for accurately and efficiently calculating sines and cosines of small angles
-//!   using the [small-angle approximation](https://en.wikipedia.org/wiki/Small-angle_approximation);
-//! * the library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html).
-//! 
+//!     [trigonometric identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities);
+//! * and some [spherical trigonometry](https://en.wikipedia.org/wiki/Spherical_trigonometry) functions.
+//! * The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html).
+//!
 //! ## Examples
-//! 
+//!
 //! The following example shows the `round-off error` inherent in calculating angles in `radians`.  
 //! It calculates the correct sine and cosine for 60° and converts them back
 //! precisely to 60°, but it fails to convert them to the precise angle in `radians`: π/3.
@@ -68,6 +74,7 @@
 //! assert_eq!(trig::COS_30_DEGREES, angle_60.sin().0);
 //! assert_eq!(0.5, angle_60.cos().0);
 //! assert_eq!(60.0, Degrees::from(angle_60).0);
+//!
 //! // assert_eq!(core::f64::consts::FRAC_PI_3, Radians::from(angle_60).0); // Fails because PI is irrational
 //! assert!(is_within_tolerance(
 //!    core::f64::consts::FRAC_PI_3,
@@ -75,7 +82,7 @@
 //!    f64::EPSILON
 //! ));
 //! ```
-//! 
+//!
 //! The following example calculates the sine and cosine between the difference
 //! of two angles in `degrees`: -155° - 175°.  
 //! It is more accurate than calling the `Angle` `From` trait in the example above
@@ -94,33 +101,33 @@
 //! assert_eq!(30.0, Degrees::from(angle_30).0);
 //! assert_eq!(core::f64::consts::FRAC_PI_6, Radians::from(angle_30).0);
 //! ```
-//! 
+//!
 //! ## Design
-//! 
+//!
 //! ### Trigonometry Functions
-//! 
+//!
 //! The `trig` module contains accurate and efficient trigonometry functions.
-//! 
+//!
 //! ### Angle
-//! 
+//!
 //! The `Angle` struct represents an angle by its sine and cosine instead of in
 //! `degrees` or `radians`.
-//! 
+//!
 //! This representation an angle makes functions such as
-//! rotating an angle +/-90° around the unit circle or calculating the opposite angle;  
+//! rotating an angle +/-90° around the unit circle or calculating the opposite angle;
 //! simple, accurate and efficient since they just involve changing the signs
 //! and/or positions of the `sin` and `cos` values.
-//! 
+//!
 //! `Angle` `Add` and `Sub` traits are implemented using
 //! [angle sum and difference](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities)
-//! trigonometric identities, 
+//! trigonometric identities,
 //! while `Angle` [double](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae)
 //! and [half](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae) methods use other
 //! trigonometric identities.
-//! 
+//!
 //! The `sin` and `cos` fields of `Angle` are `UnitNegRange`s:,
 //! a [newtype](https://rust-unofficial.github.io/patterns/patterns/behavioural/newtype.html)
-//! with values in the range -1.0 to +1.0 inclusive. 
+//! with values in the range -1.0 to +1.0 inclusive.
 
 #![cfg_attr(not(test), no_std)]
 #![allow(clippy::float_cmp)]
@@ -401,15 +408,15 @@ impl Angle {
     }
 
     /// The tangent of the Angle.
-    /// 
+    ///
     /// returns the tangent or `None` if `self.cos < SQ_EPSILON`
     #[must_use]
     pub fn tan(self) -> Option<f64> {
         trig::tan(self.sin, self.cos)
     }
 
-    /// The cosecant of the Angle. 
-    /// 
+    /// The cosecant of the Angle.
+    ///
     /// returns the cosecant or `None` if `self.sin < SQ_EPSILON`
     #[must_use]
     pub fn csc(self) -> Option<f64> {
@@ -417,7 +424,7 @@ impl Angle {
     }
 
     /// The secant of the Angle.
-    /// 
+    ///
     /// returns the secant or `None` if `self.cos < SQ_EPSILON`
     #[must_use]
     pub fn sec(self) -> Option<f64> {
@@ -425,7 +432,7 @@ impl Angle {
     }
 
     /// The cotangent of the Angle.
-    /// 
+    ///
     /// returns the cotangent or `None` if `self.sin < SQ_EPSILON`
     #[must_use]
     pub fn cot(self) -> Option<f64> {
@@ -466,7 +473,7 @@ impl Angle {
         }
     }
 
-    /// A quarter turn clockwise around the circle, i.e. + 90 degrees.
+    /// A quarter turn clockwise around the circle, i.e. + 90°.
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -483,7 +490,7 @@ impl Angle {
         }
     }
 
-    /// A quarter turn counter clockwise around the circle, i.e. - 90 degrees.
+    /// A quarter turn counter-clockwise around the circle, i.e. - 90°.
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -639,6 +646,7 @@ impl PartialOrd for Angle {
     /// Compare two Angles, i.e. a < b.  
     /// It compares whether an `Angle` is clockwise of the other `Angle` on the
     /// unit circle.  
+    ///
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -653,10 +661,17 @@ impl PartialOrd for Angle {
 }
 
 impl From<Degrees> for Angle {
-    /// Construct an Angle from an angle in Degrees.  
-    /// In order to minimize round-off errors, this function calculates sines
-    /// of angles with sine values <= 1 / √2,  
-    /// see [Sin and Cos give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).
+    /// Construct an `Angle` from an angle in Degrees.  
+    ///
+    /// Examples:
+    /// ```
+    /// use angle_sc::{Angle, Degrees, is_within_tolerance, trig};
+    ///
+    /// let angle = Angle::from(Degrees(60.0));
+    /// assert_eq!(trig::COS_30_DEGREES, angle.sin().0);
+    /// assert_eq!(0.5, angle.cos().0);
+    /// assert_eq!(60.0, Degrees::from(angle).0);
+    /// ```
     #[must_use]
     fn from(a: Degrees) -> Self {
         let (sin, cos) = trig::sincosd(a);
@@ -665,10 +680,19 @@ impl From<Degrees> for Angle {
 }
 
 impl From<(Degrees, Degrees)> for Angle {
-    /// Construct an Angle from the difference of a pair angles in Degrees:
+    /// Construct an `Angle` from the difference of a pair angles in Degrees:
     /// a - b  
-    /// In order to minimize round-off errors, this function calculates sines
-    /// of angles with sine values <= 1 / √2
+    ///
+    /// Examples:
+    /// ```
+    /// use angle_sc::{Angle, Degrees, trig};
+    ///
+    /// // Difference of Degrees(-155.0) - Degrees(175.0)
+    /// let angle = Angle::from((Degrees(-155.0), Degrees(175.0)));
+    /// assert_eq!(0.5, angle.sin().0);
+    /// assert_eq!(trig::COS_30_DEGREES, angle.cos().0);
+    /// assert_eq!(30.0, Degrees::from(angle).0);
+    /// ```
     #[must_use]
     fn from(params: (Degrees, Degrees)) -> Self {
         let (sin, cos) = trig::sincosd_diff(params.0, params.1);
@@ -677,9 +701,17 @@ impl From<(Degrees, Degrees)> for Angle {
 }
 
 impl From<Radians> for Angle {
-    /// Construct an Angle from an angle in Radians.  
-    /// In order to minimize round-off errors, this function calculates sines
-    /// of angles with sine values <= 1 / √2
+    /// Construct an `Angle` from an angle in Radians.  
+    ///
+    /// Examples:
+    /// ```
+    /// use angle_sc::{Angle, Radians, trig};
+    ///
+    /// let angle = Angle::from(Radians(-core::f64::consts::FRAC_PI_6));
+    /// assert_eq!(-0.5, angle.sin().0);
+    /// assert_eq!(trig::COS_30_DEGREES, angle.cos().0);
+    /// assert_eq!(-core::f64::consts::FRAC_PI_6, Radians::from(angle).0);
+    /// ```
     #[must_use]
     fn from(a: Radians) -> Self {
         let (sin, cos) = trig::sincos(a);
@@ -690,8 +722,18 @@ impl From<Radians> for Angle {
 impl From<(Radians, Radians)> for Angle {
     /// Construct an Angle from the difference of a pair angles in Radians:
     /// a - b  
-    /// In order to minimize round-off errors, this function calculates sines
-    /// of angles with sine values <= 1 / √2
+    ///
+    /// Examples:
+    /// ```
+    /// use angle_sc::{Angle, Radians, trig};
+    ///
+    /// // 6*π - π/3 radians round trip
+    /// let angle = Angle::from((
+    ///     Radians(3.0 * core::f64::consts::TAU),
+    ///     Radians(core::f64::consts::FRAC_PI_3),
+    /// ));
+    /// assert_eq!(-core::f64::consts::FRAC_PI_3, Radians::from(angle).0);
+    /// ```
     #[must_use]
     fn from(params: (Radians, Radians)) -> Self {
         let (sin, cos) = trig::sincos_diff(params.0, params.1);
@@ -739,7 +781,7 @@ impl<'de> Deserialize<'de> for Angle {
 
 /// Calculates floating-point sum and error.
 /// The [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm.
-/// 
+///
 /// * `a`, `b` the floating-point numbers to add.
 ///
 /// returns (a + b) and the floating-point error: $t = a + b - (a \oplus b)$  
