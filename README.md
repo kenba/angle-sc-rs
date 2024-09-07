@@ -24,8 +24,7 @@ for angles in degrees.
 
 The library also provides an [Angle](#angle) struct which represents an angle
 by its sine and cosine as the coordinates of a
-[unit circle](https://en.wikipedia.org/wiki/Unit_circle),  
-see *Figure 1*.
+[unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
 
 ![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
 *Figure 1 Unit circle formed by cos *θ* and sin *θ**

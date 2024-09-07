@@ -177,18 +177,21 @@ pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
 /// Calculate the sine of an angle in `Radians`.  
 /// Corrects sin ±π/4 to ±1/√2.
 #[must_use]
-fn sine(angle: Radians) -> UnitNegRange {
-    if angle.abs().0 == core::f64::consts::FRAC_PI_4 {
+pub fn sine(angle: Radians) -> UnitNegRange {
+    let angle_abs = angle.abs();
+    if angle_abs.0 == core::f64::consts::FRAC_PI_4 {
         UnitNegRange(libm::copysign(core::f64::consts::FRAC_1_SQRT_2, angle.0))
-    } else {
+    } else if angle_abs > MAX_LINEAR_SIN_ANGLE {
         UnitNegRange(libm::sin(angle.0))
+    } else {
+        UnitNegRange(angle.0)
     }
 }
 
 /// Calculate the cosine of an angle in `Radians` using the sine of the angle.  
 /// Corrects cos π/4 to 1/√2.
 #[must_use]
-fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
+pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
     let angle_abs = angle.abs();
     if angle_abs.0 == core::f64::consts::FRAC_PI_4 {
         UnitNegRange(libm::copysign(
