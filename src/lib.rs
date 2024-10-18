@@ -1070,6 +1070,13 @@ mod tests {
             f64::EPSILON
         ));
         assert_eq!(-140.0, Degrees::from(angle_m140).0);
+
+        let angle_180 = Angle::from(Degrees(180.0));
+        assert!(angle_180.is_valid());
+        assert_eq!(0.0, angle_180.sin().0);
+        assert_eq!(-1.0, angle_180.cos().0);
+        assert_eq!(180.0, Degrees::from(angle_180).0);
+        assert_eq!(core::f64::consts::PI, Radians::from(angle_180).0);
     }
 
     #[test]
