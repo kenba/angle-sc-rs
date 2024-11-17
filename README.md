@@ -6,27 +6,28 @@
 [![Rust](https://github.com/kenba/angle-sc-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/kenba/angle-sc-rs/actions)
 [![codecov](https://codecov.io/gh/kenba/angle-sc-rs/graph/badge.svg?token=6DTOY9Y4BT)](https://codecov.io/gh/kenba/angle-sc-rs)
 
-A Rust library for performing accurate and efficient trigonometry calculations.  
+A Rust library for performing accurate and efficient trigonometry calculations.
 
 ## Description
 
-The standard trigonometry functions: `sin`, `cos`, `tan`, etc. 
-[give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).  
-This is because the functions use parameters with `radians` units instead of `degrees`.
-The conversion from `degrees` to `radians` suffers from
-[round-off error](https://en.wikipedia.org/wiki/Round-off_error) due to
-`radians` being based on the irrational number π.
+The standard trigonometry functions: `sin`, `cos`, `tan`, etc.
+[give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).
+This is due to floating-point [round-off errors](https://en.wikipedia.org/wiki/Round-off_error)
+and the functions taking parameters in `radians` instead of `degrees`.
+The conversion from `degrees` to `radians` (and vice-versa) suffers from `round-off error`
+because `radians` is based on the irrational number π.
 
-This library provides a [sincos](src/trig.rs#sincos) function to calculate more
-accurate values than the standard `sin` and `cos` functions for angles in radians  
+This library uses the [remquo](https://en.cppreference.com/w/cpp/numeric/math/remquo)
+function to provide a [sincos](src/trig.rs#sincos) function to calculate more
+accurate values than the standard `sin` and `cos` functions for angles in `radians`
 and a [sincosd](src/trig.rs#sincosd) function to calculate more accurate values
-for angles in degrees.
+for angles in `degrees`.
 
 The library also provides an [Angle](#angle) struct which represents an angle
 by its sine and cosine as the coordinates of a
 [unit circle](https://en.wikipedia.org/wiki/Unit_circle), see *Figure 1*.
 
-![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
+![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)
 *Figure 1 Unit circle formed by cos *θ* and sin *θ**
 
 The `Angle` struct enables more accurate calculations of angle rotations and
@@ -46,7 +47,7 @@ using the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm;
 
 ## Examples
 
-The following example shows the `round-off error` inherent in calculating angles in `radians`.  
+The following example shows the `round-off error` inherent in calculating angles in `radians`.
 It calculates the correct sine and cosine for 60° and converts them back
 precisely to 60°, but it fails to convert them to the precise angle in `radians`: π/3.
 ```rust
@@ -66,12 +67,12 @@ assert!(is_within_tolerance(
 ```
 
 The following example calculates the sine and cosine between the difference
-of two angles in `degrees`: -155° - 175°.  
+of two angles in `degrees`: -155° - 175°.
 It is more accurate than calling the `Angle` `From` trait in the example above
-with the difference in `degrees`.  
+with the difference in `degrees`.
 It is particularly useful for implementing the
 [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
-which requires sines and cosines of both longitude and latitude differences.  
+which requires sines and cosines of both longitude and latitude differences.
 Note: in this example sine and cosine of 30° are converted precisely to π/6.
 ```rust
 use angle_sc::{Angle, Degrees, Radians, trig};
@@ -93,9 +94,9 @@ The [trig](src/trig.rs) module contains accurate and efficient trigonometry func
 ### Angle
 
 The `Angle` struct represents an angle by its sine and cosine instead of in
-`degrees` or `radians`, see *Figure 2*.  
+`degrees` or `radians`, see *Figure 2*.
 
-![Angle Class Diagram](docs/images/angle_class_diagram.svg)  
+![Angle Class Diagram](docs/images/angle_class_diagram.svg)
 *Figure 2 Angle Class Diagram*
 
 This representation an angle makes functions such as
@@ -105,14 +106,14 @@ and/or positions of the `sin` and `cos` values.
 
 `Angle` `Add` and `Sub` traits are implemented using
 [angle sum and difference](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities)
-trigonometric identities, 
+trigonometric identities,
 while `Angle` [double](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Double-angle_formulae)
 and [half](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae) methods use other
 trigonometric identities.
 
 The `sin` and `cos` fields of `Angle` are `UnitNegRange`s:,
 a [newtype](https://rust-unofficial.github.io/patterns/patterns/behavioural/newtype.html)
-with values in the range -1.0 to +1.0 inclusive.  
+with values in the range -1.0 to +1.0 inclusive.
 
 ## Contribution
 

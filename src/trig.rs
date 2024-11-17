@@ -32,7 +32,7 @@
 //! [remquo](https://pubs.opengroup.org/onlinepubs/9699919799/functions/remquo.html)
 //! to reduce an angle into the range: -π/4 <= angle <= π/4;
 //! and its quadrant: along the positive or negative, *x* or *y* axis of the
-//! unit circle.  
+//! unit circle.
 //! The `sincos_diff` function reduces the
 //! [round-off error](https://en.wikipedia.org/wiki/Round-off_error)
 //! of the difference of two angles in radians using the
@@ -42,7 +42,7 @@
 //! `sincosd_diff` is the `degrees` equivalent of `sincos_diff`.
 //!
 //! The sines and cosines of angles are represented by the `UnitNegRange`
-//! struct which ensures that they lie in the range:  
+//! struct which ensures that they lie in the range:
 //! -1.0 <= value <= 1.0.
 //!
 //! The functions `arctan2` and `arctan2d` are the reciprocal of `sincos` and
@@ -66,7 +66,7 @@ use core::{f64, ops::Neg};
 /// ε * ε, a very small number.
 pub const SQ_EPSILON: f64 = f64::EPSILON * f64::EPSILON;
 
-/// `core::f64::consts::SQRT_3` is currently a nightly-only experimental API,  
+/// `core::f64::consts::SQRT_3` is currently a nightly-only experimental API,
 /// see <https://doc.rust-lang.org/core/f64/consts/constant.SQRT_3.html>
 #[allow(clippy::excessive_precision, clippy::unreadable_literal)]
 pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
@@ -78,14 +78,26 @@ pub const MAX_LINEAR_SIN_ANGLE: Radians = Radians(9.67e7 * f64::EPSILON);
 /// The maximum angle in Radians where: `swap_sin_cos(libm::sin(value)) == 1.0`
 pub const MAX_COS_ANGLE_IS_ONE: Radians = Radians(3.35e7 * f64::EPSILON);
 
-/// The `UnitNegRange` newtype an f64.  
+/// Convert an angle in `Degrees` to `Radians`.
+///
+/// Corrects ±30° to ±π/6.
+#[must_use]
+fn to_radians(angle: Degrees) -> Radians {
+    if angle.abs().0 == 30.0 {
+        Radians(libm::copysign(core::f64::consts::FRAC_PI_6, angle.0))
+    } else {
+        Radians(angle.0.to_radians())
+    }
+}
+
+/// The `UnitNegRange` newtype an f64.
 /// A valid `UnitNegRange` value lies between -1.0 and +1.0 inclusive.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct UnitNegRange(pub f64);
 
 impl UnitNegRange {
     /// Clamp value into the valid range: -1.0 to +1.0 inclusive.
-    /// 
+    ///
     /// # Examples
     /// ```
     /// use angle_sc::trig::UnitNegRange;
@@ -110,7 +122,7 @@ impl UnitNegRange {
 
 impl Validate for UnitNegRange {
     /// Test whether a `UnitNegRange` is valid.
-    /// 
+    ///
     /// I.e. whether it lies in the range: -1.0 <= value <= 1.0
     /// # Examples
     /// ```
@@ -130,8 +142,8 @@ impl Validate for UnitNegRange {
 impl Neg for UnitNegRange {
     type Output = Self;
 
-    /// An implementation of Neg for `UnitNegRange`.  
-    /// 
+    /// An implementation of Neg for `UnitNegRange`.
+    ///
     /// Negates the value.
     fn neg(self) -> Self {
         Self(0.0 - self.0)
@@ -139,10 +151,10 @@ impl Neg for UnitNegRange {
 }
 
 /// Swap the sine into the cosine of an angle and vice versa.
-/// 
-/// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1.  
+///
+/// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1.
 /// See:
-/// [Pythagorean identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Pythagorean_identities)  
+/// [Pythagorean identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Pythagorean_identities)
 /// * `a` the sine of the angle.
 ///
 /// # Examples
@@ -158,10 +170,10 @@ pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
 }
 
 /// Calculate the cosine of an angle from it's sine and the sign of the cosine.
-/// 
+///
 /// See: `swap_sin_cos`.
 /// * `a` the sine of the angle.
-/// * `sign` the sign of the cosine of the angle.  
+/// * `sign` the sign of the cosine of the angle.
 ///
 /// return the cosine of the Angle.
 /// # Examples
@@ -180,7 +192,7 @@ pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
 }
 
 /// Calculate the sine of an angle in `Radians`.
-/// 
+///
 /// Corrects sin ±π/4 to ±1/√2.
 #[must_use]
 pub fn sine(angle: Radians) -> UnitNegRange {
@@ -195,7 +207,7 @@ pub fn sine(angle: Radians) -> UnitNegRange {
 }
 
 /// Calculate the cosine of an angle in `Radians` using the sine of the angle.
-/// 
+///
 /// Corrects cos π/4 to 1/√2.
 #[must_use]
 pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
@@ -211,7 +223,7 @@ pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
 }
 
 /// Assign `sin` and `cos` to the `remquo` quadrant: `q`:
-/// 
+///
 /// - 0: no conversion
 /// - 1: rotate 90° clockwise
 /// - 2: opposite quadrant
@@ -223,15 +235,15 @@ fn assign_sin_cos_to_quadrant(
     q: i32,
 ) -> (UnitNegRange, UnitNegRange) {
     match q & 3 {
-        0 => (sin, cos),
         1 => (cos, -sin),  // quarter_turn_cw
         2 => (-sin, -cos), // opposite
-        _ => (-cos, sin),  // quarter_turn_ccw
+        3 => (-cos, sin),  // quarter_turn_ccw
+        _ => (sin, cos),
     }
 }
 
 /// Calculate the sine and cosine of an angle from a value in `Radians`.
-/// 
+///
 /// Note: calculates the cosine of the angle from its sine and overrides both
 /// the sine and cosine for π/4 to their correct values: 1/√2
 ///
@@ -250,7 +262,7 @@ pub fn sincos(radians: Radians) -> (UnitNegRange, UnitNegRange) {
 
 /// Calculate the sine and cosine of an angle from the difference of a pair of
 /// values in `Radians`.
-/// 
+///
 /// Note: calculates the cosine of the angle from its sine and overrides the
 /// sine and cosine for π/4 to their correct values: 1/√2
 ///
@@ -264,56 +276,6 @@ pub fn sincos_diff(a: Radians, b: Radians) -> (UnitNegRange, UnitNegRange) {
 
     // radians_q is radians in range `-FRAC_PI_4..=FRAC_PI_4`
     let radians_q = Radians(rq.0 + delta.1);
-    let sin = sine(radians_q);
-    assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
-}
-
-/// Convert an angle in `Degrees` to `Radians`.
-/// 
-/// Corrects ±30° to ±π/6.
-#[must_use]
-fn to_radians(angle: Degrees) -> Radians {
-    if angle.abs().0 == 30.0 {
-        Radians(libm::copysign(core::f64::consts::FRAC_PI_6, angle.0))
-    } else {
-        Radians(angle.0.to_radians())
-    }
-}
-
-/// Calculate the sine and cosine of an angle from a value in `Degrees`.
-/// 
-/// Note: calculates the cosine of the angle from its sine and overrides the
-/// sine and cosine for ±30° and ±45° to their correct values.
-///
-/// * `degrees` the angle in `Degrees`
-///
-/// returns sine and cosine of the angle as `UnitNegRange`s.
-#[must_use]
-pub fn sincosd(degrees: Degrees) -> (UnitNegRange, UnitNegRange) {
-    let rq: (f64, i32) = libm::remquo(degrees.0, 90.0);
-
-    // radians_q is radians in range `-FRAC_PI_4..=FRAC_PI_4`
-    let radians_q = to_radians(Degrees(rq.0));
-    let sin = sine(radians_q);
-    assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
-}
-
-/// Calculate the sine and cosine of an angle from the difference of a pair of
-/// values in `Degrees`.
-/// 
-/// Note: calculates the cosine of the angle from its sine and overrides the
-/// sine and cosine for ±30° and ±45° to their correct values.
-///
-/// * `a`, `b` the angles in `Degrees`
-///
-/// returns sine and cosine of a - b as `UnitNegRange`s.
-#[must_use]
-pub fn sincosd_diff(a: Degrees, b: Degrees) -> (UnitNegRange, UnitNegRange) {
-    let delta = two_sum(a.0, -b.0);
-    let rq: (f64, i32) = libm::remquo(delta.0, 90.0);
-
-    // radians_q is radians in range `-FRAC_PI_4..=FRAC_PI_4`
-    let radians_q = to_radians(Degrees(rq.0 + delta.1));
     let sin = sine(radians_q);
     assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
 }
@@ -344,12 +306,50 @@ pub fn arctan2(sin: UnitNegRange, cos: UnitNegRange) -> Radians {
         radians_pi_2
     };
 
-    // return radians in the range -PI..=PI
+    // return radians in the range -π < radians <= π
     Radians(libm::copysign(radians_pi, sin.0))
 }
 
+/// Calculate the sine and cosine of an angle from a value in `Degrees`.
+///
+/// Note: calculates the cosine of the angle from its sine and overrides the
+/// sine and cosine for ±30° and ±45° to their correct values.
+///
+/// * `degrees` the angle in `Degrees`
+///
+/// returns sine and cosine of the angle as `UnitNegRange`s.
+#[must_use]
+pub fn sincosd(degrees: Degrees) -> (UnitNegRange, UnitNegRange) {
+    let rq: (f64, i32) = libm::remquo(degrees.0, 90.0);
+
+    // radians_q is radians in range `-π/4 <= radians <= π/4`
+    let radians_q = to_radians(Degrees(rq.0));
+    let sin = sine(radians_q);
+    assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
+}
+
+/// Calculate the sine and cosine of an angle from the difference of a pair of
+/// values in `Degrees`.
+///
+/// Note: calculates the cosine of the angle from its sine and overrides the
+/// sine and cosine for ±30° and ±45° to their correct values.
+///
+/// * `a`, `b` the angles in `Degrees`
+///
+/// returns sine and cosine of a - b as `UnitNegRange`s.
+#[must_use]
+pub fn sincosd_diff(a: Degrees, b: Degrees) -> (UnitNegRange, UnitNegRange) {
+    let delta = two_sum(a.0, -b.0);
+    let rq: (f64, i32) = libm::remquo(delta.0, 90.0);
+
+    // radians_q is radians in range `-π/4 <= radians <= π/4`
+    let radians_q = to_radians(Degrees(rq.0 + delta.1));
+    let sin = sine(radians_q);
+    assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
+}
+
 /// Accurately calculate a small an angle in `Degrees` from the its sine and cosine.
-/// 
+///
 /// Converts sin of 0.5 to 30°.
 #[must_use]
 fn arctan2_degrees(sin_abs: f64, cos_abs: f64) -> f64 {
@@ -379,18 +379,18 @@ pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
         90.0 - arctan2_degrees(cos_abs, sin_abs)
     };
 
-    // calculate degrees in the range 0.0..=180.0
+    // calculate degrees in the range 0° <= degrees <= 180°
     let degrees_180 = if cos.0.is_sign_negative() {
         180.0 - degrees_90
     } else {
         degrees_90
     };
 
-    // return degrees in the range -180.0..=180.0
+    // return degrees in the range -180° < degrees <= 180°
     Degrees(libm::copysign(degrees_180, sin.0))
 }
 
-/// The cosecant of an angle.  
+/// The cosecant of an angle.
 ///
 /// * `sin` the sine of the angle.
 ///
@@ -404,7 +404,7 @@ pub fn csc(sin: UnitNegRange) -> Option<f64> {
     }
 }
 
-/// The secant of an angle.  
+/// The secant of an angle.
 ///
 /// * `cos` the cosine of the angle.
 ///
@@ -418,7 +418,7 @@ pub fn sec(cos: UnitNegRange) -> Option<f64> {
     }
 }
 
-/// The tangent of an angle.  
+/// The tangent of an angle.
 ///
 /// * `cos` the cosine of the angle.
 ///
@@ -429,7 +429,7 @@ pub fn tan(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
     Some(sin.0 * secant)
 }
 
-/// The cotangent of an angle.  
+/// The cotangent of an angle.
 ///
 /// * `sin` the sine of the angle.
 ///
@@ -441,9 +441,9 @@ pub fn cot(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
 }
 
 /// Calculate the sine of the difference of two angles: a - b.
-/// 
+///
 /// See:
-/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -459,9 +459,9 @@ pub fn sine_diff(
 }
 
 /// Calculate the sine of the sum of two angles: a + b.
-/// 
+///
 /// See:
-/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -477,9 +477,9 @@ pub fn sine_sum(
 }
 
 /// Calculate the cosine of the difference of two angles: a - b.
-/// 
+///
 /// See:
-/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -495,9 +495,9 @@ pub fn cosine_diff(
 }
 
 /// Calculate the cosine of the sum of two angles: a + b.
-/// 
+///
 /// See:
-/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+/// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).
 /// * `sin_a`, `cos_a` the sine and cosine of angle a.
 /// * `sin_b`, `cos_b` the sine and cosine of angle b.
 ///
@@ -513,7 +513,7 @@ pub fn cosine_sum(
 }
 
 /// Square of the sine of half the Angle.
-/// 
+///
 /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
 #[must_use]
 pub fn sq_sine_half(cos: UnitNegRange) -> f64 {
@@ -521,7 +521,7 @@ pub fn sq_sine_half(cos: UnitNegRange) -> f64 {
 }
 
 /// Square of the cosine of half the Angle.
-/// 
+///
 /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
 #[must_use]
 pub fn sq_cosine_half(cos: UnitNegRange) -> f64 {
@@ -530,8 +530,8 @@ pub fn sq_cosine_half(cos: UnitNegRange) -> f64 {
 
 /// Calculates the length of the other side in a right angled triangle,
 /// given the length of one side and the hypotenuse.
-/// 
-/// See: [Pythagorean theorem](https://en.wikipedia.org/wiki/Pythagorean_theorem)  
+///
+/// See: [Pythagorean theorem](https://en.wikipedia.org/wiki/Pythagorean_theorem)
 /// * `length` the length of a side.
 /// * `hypotenuse` the length of the hypotenuse
 ///
@@ -550,7 +550,7 @@ pub fn calculate_adjacent_length(length: f64, hypotenuse: f64) -> f64 {
 
 /// Calculates the length of the other side in a right angled spherical
 /// triangle, given the length of one side and the hypotenuse.
-/// 
+///
 /// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)
 /// * `a` the length of a side.
 /// * `c` the length of the hypotenuse
@@ -570,8 +570,8 @@ pub fn spherical_adjacent_length(a: Radians, c: Radians) -> Radians {
 
 /// Calculates the length of the hypotenuse in a right angled spherical
 /// triangle, given the length of both sides.
-/// 
-/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)  
+///
+/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)
 /// * `a`, `b` the lengths of the sides adjacent to the right angle.
 ///
 /// returns the length of the hypotenuse.
@@ -588,8 +588,8 @@ pub fn spherical_hypotenuse_length(a: Radians, b: Radians) -> Radians {
 
 /// Calculate the length of the adjacent side of a right angled spherical
 /// triangle, given the cosine of the angle and length of the hypotenuse.
-/// 
-/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)  
+///
+/// See: [Spherical law of cosines](https://en.wikipedia.org/wiki/Spherical_law_of_cosines)
 /// * `cos_angle` the cosine of the adjacent angle.
 /// * `length` the length of the hypotenuse
 ///
@@ -763,6 +763,12 @@ mod tests {
         assert!(is_within_tolerance(0.5, result.1 .0, f64::EPSILON));
         assert_eq!(core::f64::consts::FRAC_PI_3, arctan2(result.0, result.1).0);
 
+        // -π radians round trip to +π radians
+        let result = sincos(Radians(-core::f64::consts::PI));
+        assert_eq!(0.0, result.0 .0);
+        assert_eq!(-1.0, result.1 .0);
+        assert_eq!(core::f64::consts::PI, arctan2(result.0, result.1).0);
+
         // π - π/4 radians round trip
         let result = sincos_diff(
             Radians(core::f64::consts::PI),
@@ -810,6 +816,12 @@ mod tests {
         assert_eq!(COS_30_DEGREES, result.0 .0);
         assert_eq!(0.5, result.1 .0);
         assert_eq!(60.0, arctan2d(result.0, result.1).0);
+
+        // -180 degrees round trip to +180 degrees
+        let result = sincosd(Degrees(-180.0));
+        assert_eq!(0.0, result.0 .0);
+        assert_eq!(-1.0, result.1 .0);
+        assert_eq!(180.0, arctan2d(result.0, result.1).0);
 
         // 180 - 45 degrees round trip
         let result = sincosd_diff(Degrees(180.0), Degrees(45.0));
