@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Ken Barker
+// Copyright (c) 2024-2025 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -29,22 +29,22 @@
 //! ## Description
 //!
 //! The standard trigonometry functions: `sin`, `cos`, `tan`, etc.
-//! [give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).  
+//! [give unexpected results for well-known angles](https://stackoverflow.com/questions/31502120/sin-and-cos-give-unexpected-results-for-well-known-angles#answer-31525208).
 //! This is because the functions use parameters with `radians` units instead of `degrees`.
 //! The conversion from `degrees` to `radians` suffers from
 //! [round-off error](https://en.wikipedia.org/wiki/Round-off_error) due to
 //! `radians` being based on the irrational number π.
 //! This library provides a [sincos](src/trig.rs#sincos) function to calculate more
-//! accurate values than the standard `sin` and `cos` functions for angles in radians  
+//! accurate values than the standard `sin` and `cos` functions for angles in radians
 //! and a [sincosd](src/trig.rs#sincosd) function to calculate more accurate values
 //! for angles in degrees.
 //!
 //! The library also provides an [Angle](#angle) struct which represents an angle
 //! by its sine and cosine as the coordinates of a
-//! [unit circle](https://en.wikipedia.org/wiki/Unit_circle),  
+//! [unit circle](https://en.wikipedia.org/wiki/Unit_circle),
 //! see *Figure 1*.
 //!
-//! ![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)  
+//! ![Unit circle](https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Sinus_und_Kosinus_am_Einheitskreis_1.svg/250px-Sinus_und_Kosinus_am_Einheitskreis_1.svg.png)
 //! *Figure 1 Unit circle formed by cos *θ* and sin *θ**
 //!
 //! The `Angle` struct enables more accurate calculations of angle rotations and
@@ -64,7 +64,7 @@
 //!
 //! ## Examples
 //!
-//! The following example shows the `round-off error` inherent in calculating angles in `radians`.  
+//! The following example shows the `round-off error` inherent in calculating angles in `radians`.
 //! It calculates the correct sine and cosine for 60° and converts them back
 //! precisely to 60°, but it fails to convert them to the precise angle in `radians`: π/3.
 //! ```
@@ -84,12 +84,12 @@
 //! ```
 //!
 //! The following example calculates the sine and cosine between the difference
-//! of two angles in `degrees`: -155° - 175°.  
+//! of two angles in `degrees`: -155° - 175°.
 //! It is more accurate than calling the `Angle` `From` trait in the example above
-//! with the difference in `degrees`.  
+//! with the difference in `degrees`.
 //! It is particularly useful for implementing the
 //! [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
-//! which requires sines and cosines of both longitude and latitude differences.  
+//! which requires sines and cosines of both longitude and latitude differences.
 //! Note: in this example sine and cosine of 30° are converted precisely to π/6.
 //! ```
 //! use angle_sc::{Angle, Degrees, Radians, trig};
@@ -135,7 +135,7 @@
 pub mod trig;
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::From;
-use core::ops::{Add, Neg, Sub};
+use core::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// The Degrees newtype an f64.
@@ -160,6 +160,13 @@ impl Degrees {
     }
 }
 
+impl Default for Degrees {
+    #[must_use]
+    fn default() -> Self {
+        Self(0.0)
+    }
+}
+
 impl Neg for Degrees {
     type Output = Self;
 
@@ -181,7 +188,7 @@ impl Neg for Degrees {
 impl Add for Degrees {
     type Output = Self;
 
-    /// Add a pair of angles in Degrees, wraps around +/-180.  
+    /// Add a pair of angles in Degrees, wraps around +/-180.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -193,7 +200,7 @@ impl Add for Degrees {
     /// assert_eq!(-angle_120, result);
     /// ```
     #[must_use]
-    fn add(self, other: Self) -> Self {
+    fn add(self, other: Self) -> Self::Output {
         let (s, t) = two_sum(self.0, other.0);
         Self(if s <= -180.0 {
             s + 360.0 + t
@@ -205,10 +212,16 @@ impl Add for Degrees {
     }
 }
 
+impl AddAssign for Degrees {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
 impl Sub for Degrees {
     type Output = Self;
 
-    /// Subtract a pair of angles in Degrees, wraps around +/-180.  
+    /// Subtract a pair of angles in Degrees, wraps around +/-180.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -220,8 +233,14 @@ impl Sub for Degrees {
     /// assert_eq!(angle_120, result);
     /// ```
     #[must_use]
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, other: Self) -> Self::Output {
         self + -other
+    }
+}
+
+impl SubAssign for Degrees {
+    fn sub_assign(&mut self, other: Self) {
+        *self = *self - other;
     }
 }
 
@@ -266,6 +285,13 @@ impl Radians {
     }
 }
 
+impl Default for Radians {
+    #[must_use]
+    fn default() -> Self {
+        Self(0.0)
+    }
+}
+
 impl Neg for Radians {
     type Output = Self;
 
@@ -287,7 +313,7 @@ impl Neg for Radians {
 impl Add for Radians {
     type Output = Self;
 
-    /// Add a pair of angles in Radians, wraps around +/-PI.  
+    /// Add a pair of angles in Radians, wraps around +/-PI.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -299,7 +325,7 @@ impl Add for Radians {
     /// assert!(is_within_tolerance(-2.0 * core::f64::consts::FRAC_PI_3, result.0,  4.0 * f64::EPSILON));
     /// ```
     #[must_use]
-    fn add(self, other: Self) -> Self {
+    fn add(self, other: Self) -> Self::Output {
         let (s, t) = two_sum(self.0, other.0);
         Self(if s <= -core::f64::consts::PI {
             s + core::f64::consts::TAU + t
@@ -311,10 +337,16 @@ impl Add for Radians {
     }
 }
 
+impl AddAssign for Radians {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
 impl Sub for Radians {
     type Output = Self;
 
-    /// Subtract a pair of angles in Radians,  wraps around +/-PI.  
+    /// Subtract a pair of angles in Radians,  wraps around +/-PI.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -327,8 +359,14 @@ impl Sub for Radians {
     /// assert!(is_within_tolerance(angle_120.0, result.0,  4.0 * f64::EPSILON));
     /// ```
     #[must_use]
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, other: Self) -> Self::Output {
         self + -other
+    }
+}
+
+impl SubAssign for Radians {
+    fn sub_assign(&mut self, other: Self) {
+        *self = *self - other;
     }
 }
 
@@ -373,13 +411,13 @@ impl Validate for Angle {
 }
 
 impl Angle {
-    /// Construct an Angle from sin and cos values.  
+    /// Construct an Angle from sin and cos values.
     #[must_use]
     pub const fn new(sin: trig::UnitNegRange, cos: trig::UnitNegRange) -> Self {
         Self { sin, cos }
     }
 
-    /// Construct an Angle from y and x values.  
+    /// Construct an Angle from y and x values.
     /// Normalizes the values.
     #[must_use]
     pub fn from_y_x(y: f64, x: f64) -> Self {
@@ -548,7 +586,7 @@ impl Angle {
         }
     }
 
-    /// Half of the Angle.  
+    /// Half of the Angle.
     /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
     /// # Examples
     /// ```
@@ -574,7 +612,7 @@ impl Angle {
 impl Neg for Angle {
     type Output = Self;
 
-    /// An implementation of Neg for Angle, i.e. -angle.  
+    /// An implementation of Neg for Angle, i.e. -angle.
     /// Negates the sine of the Angle, does not affect the cosine.
     /// # Examples
     /// ```
@@ -596,9 +634,9 @@ impl Neg for Angle {
 impl Add for Angle {
     type Output = Self;
 
-    /// Add two Angles, i.e. a + b  
+    /// Add two Angles, i.e. a + b
     /// Uses trigonometric identity functions, see:
-    /// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+    /// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees};
@@ -609,7 +647,7 @@ impl Add for Angle {
     /// assert_eq!(Degrees(90.0), Degrees::from(result_90));
     /// ```
     #[must_use]
-    fn add(self, other: Self) -> Self {
+    fn add(self, other: Self) -> Self::Output {
         Self {
             sin: trig::sine_sum(self.sin, self.cos, other.sin, other.cos),
             cos: trig::cosine_sum(self.sin, self.cos, other.sin, other.cos),
@@ -617,12 +655,18 @@ impl Add for Angle {
     }
 }
 
+impl AddAssign for Angle {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
 impl Sub for Angle {
     type Output = Self;
 
-    /// Subtract two Angles, i.e. a - b  
+    /// Subtract two Angles, i.e. a - b
     /// Uses trigonometric identity functions, see:
-    /// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).  
+    /// [angle sum and difference identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities).
     /// # Examples
     /// ```
     /// use angle_sc::{Angle, Degrees, is_within_tolerance};
@@ -634,7 +678,7 @@ impl Sub for Angle {
     /// assert!(is_within_tolerance(Degrees(30.0).0, Degrees::from(result_30).0, 32.0 * f64::EPSILON));
     /// ```
     #[must_use]
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, other: Self) -> Self::Output {
         Self {
             sin: trig::sine_diff(self.sin, self.cos, other.sin, other.cos),
             cos: trig::cosine_diff(self.sin, self.cos, other.sin, other.cos),
@@ -642,10 +686,16 @@ impl Sub for Angle {
     }
 }
 
+impl SubAssign for Angle {
+    fn sub_assign(&mut self, other: Self) {
+        *self = *self - other;
+    }
+}
+
 impl PartialOrd for Angle {
-    /// Compare two Angles, i.e. a < b.  
+    /// Compare two Angles, i.e. a < b.
     /// It compares whether an `Angle` is clockwise of the other `Angle` on the
-    /// unit circle.  
+    /// unit circle.
     ///
     /// # Examples
     /// ```
@@ -661,7 +711,7 @@ impl PartialOrd for Angle {
 }
 
 impl From<Degrees> for Angle {
-    /// Construct an `Angle` from an angle in Degrees.  
+    /// Construct an `Angle` from an angle in Degrees.
     ///
     /// Examples:
     /// ```
@@ -681,7 +731,7 @@ impl From<Degrees> for Angle {
 
 impl From<(Degrees, Degrees)> for Angle {
     /// Construct an `Angle` from the difference of a pair angles in Degrees:
-    /// a - b  
+    /// a - b
     ///
     /// Examples:
     /// ```
@@ -701,7 +751,7 @@ impl From<(Degrees, Degrees)> for Angle {
 }
 
 impl From<Radians> for Angle {
-    /// Construct an `Angle` from an angle in Radians.  
+    /// Construct an `Angle` from an angle in Radians.
     ///
     /// Examples:
     /// ```
@@ -721,7 +771,7 @@ impl From<Radians> for Angle {
 
 impl From<(Radians, Radians)> for Angle {
     /// Construct an Angle from the difference of a pair angles in Radians:
-    /// a - b  
+    /// a - b
     ///
     /// Examples:
     /// ```
@@ -784,7 +834,7 @@ impl<'de> Deserialize<'de> for Angle {
 ///
 /// * `a`, `b` the floating-point numbers to add.
 ///
-/// returns (a + b) and the floating-point error: $t = a + b - (a \oplus b)$  
+/// returns (a + b) and the floating-point error: $t = a + b - (a \oplus b)$
 /// so: $a+b=s+t$.
 #[must_use]
 pub fn two_sum<T>(a: T, b: T) -> (T, T)
@@ -862,17 +912,24 @@ mod tests {
 
     #[test]
     fn test_degrees_traits() {
+        let zero = Degrees::default();
+        assert_eq!(Degrees(0.0), zero);
         let one = Degrees(1.0);
-        let two = Degrees(2.0);
-        let one_clone = one.clone();
+        let mut one_clone = one.clone();
         assert!(one_clone == one);
+        let two = Degrees(2.0);
+        let m_one = Degrees(-1.0);
+        assert_eq!(m_one, -one);
 
-        let m_two = -two;
-        assert_eq!(-2.0, m_two.0);
-        assert_eq!(two, m_two.abs());
+        assert_eq!(one, m_one.abs());
 
-        let m_one = one + m_two;
-        assert_eq!(-1.0, m_one.0);
+        assert_eq!(m_one, one - two);
+        one_clone -= two;
+        assert_eq!(m_one, one_clone);
+
+        assert_eq!(one, m_one + two);
+        one_clone += two;
+        assert_eq!(one, one_clone);
 
         let d_120 = Degrees(120.0);
         let d_m120 = Degrees(-120.0);
@@ -899,19 +956,26 @@ mod tests {
 
     #[test]
     fn test_radians_traits() {
+        let zero = Radians::default();
+        assert_eq!(Radians(0.0), zero);
         let one = Radians(1.0);
-        let two = Radians(2.0);
-        assert!(one < two);
-
-        let one_clone = one.clone();
+        let mut one_clone = one.clone();
         assert!(one_clone == one);
-
+        let two = Radians(2.0);
         let m_two = -two;
-        assert_eq!(-2.0, m_two.0);
-        assert_eq!(two, m_two.abs());
+        assert!(one < two);
+        let m_one = Radians(-1.0);
+        assert_eq!(m_one, -one);
 
-        let m_one = one + m_two;
-        assert_eq!(-1.0, m_one.0);
+        assert_eq!(one, m_one.abs());
+
+        assert_eq!(m_one, one - two);
+        one_clone -= two;
+        assert_eq!(m_one, one_clone);
+
+        assert_eq!(one, m_one + two);
+        one_clone += two;
+        assert_eq!(one, one_clone);
 
         let result_1 = m_two - two;
         assert_eq!(core::f64::consts::TAU - 4.0, result_1.0);
@@ -1096,7 +1160,15 @@ mod tests {
         let result = degrees_m120 - degrees_120;
         assert_eq!(Degrees(120.0).0, Degrees::from(result).0);
 
+        let mut result = degrees_m120;
+        result -= degrees_120;
+        assert_eq!(Degrees(120.0).0, Degrees::from(result).0);
+
         let result = degrees_120 + degrees_120;
+        assert_eq!(Degrees(-120.0).0, Degrees::from(result).0);
+
+        let mut result = degrees_120;
+        result += degrees_120;
         assert_eq!(Degrees(-120.0).0, Degrees::from(result).0);
 
         let result = degrees_60.double();
