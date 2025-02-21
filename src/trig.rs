@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Ken Barker
+// Copyright (c) 2024-2025 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@
 
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
-use crate::{two_sum, Degrees, Radians, Validate};
+use crate::{Degrees, Radians, Validate, two_sum};
 use core::{f64, ops::Neg};
 
 /// ε * ε, a very small number.
@@ -746,8 +746,8 @@ mod tests {
 
         // -π/6 radians round trip
         let result = sincos(Radians(-core::f64::consts::FRAC_PI_6));
-        assert_eq!(-0.5, result.0 .0);
-        assert_eq!(COS_30_DEGREES, result.1 .0);
+        assert_eq!(-0.5, result.0.0);
+        assert_eq!(COS_30_DEGREES, result.1.0);
         assert_eq!(-core::f64::consts::FRAC_PI_6, arctan2(result.0, result.1).0);
 
         // π/3 radians round trip
@@ -756,17 +756,17 @@ mod tests {
         // assert_eq!(COS_30_DEGREES, result.0.0);
         assert!(is_within_tolerance(
             COS_30_DEGREES,
-            result.0 .0,
+            result.0.0,
             f64::EPSILON
         ));
         // assert_eq!(0.5, result.1.0);
-        assert!(is_within_tolerance(0.5, result.1 .0, f64::EPSILON));
+        assert!(is_within_tolerance(0.5, result.1.0, f64::EPSILON));
         assert_eq!(core::f64::consts::FRAC_PI_3, arctan2(result.0, result.1).0);
 
         // -π radians round trip to +π radians
         let result = sincos(Radians(-core::f64::consts::PI));
-        assert_eq!(0.0, result.0 .0);
-        assert_eq!(-1.0, result.1 .0);
+        assert_eq!(0.0, result.0.0);
+        assert_eq!(-1.0, result.1.0);
         assert_eq!(core::f64::consts::PI, arctan2(result.0, result.1).0);
 
         // π - π/4 radians round trip
@@ -774,8 +774,8 @@ mod tests {
             Radians(core::f64::consts::PI),
             Radians(core::f64::consts::FRAC_PI_4),
         );
-        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, result.0 .0);
-        assert_eq!(-core::f64::consts::FRAC_1_SQRT_2, result.1 .0);
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, result.0.0);
+        assert_eq!(-core::f64::consts::FRAC_1_SQRT_2, result.1.0);
         assert_eq!(
             core::f64::consts::PI - core::f64::consts::FRAC_PI_4,
             arctan2(result.0, result.1).0
@@ -790,11 +790,11 @@ mod tests {
         // assert_eq!(-COS_30_DEGREES, result.0.0);
         assert!(is_within_tolerance(
             -COS_30_DEGREES,
-            result.0 .0,
+            result.0.0,
             f64::EPSILON
         ));
         // assert_eq!(0.5, result.1.0);
-        assert!(is_within_tolerance(0.5, result.1 .0, f64::EPSILON));
+        assert!(is_within_tolerance(0.5, result.1.0, f64::EPSILON));
         assert_eq!(-core::f64::consts::FRAC_PI_3, arctan2(result.0, result.1).0);
     }
 
@@ -807,32 +807,32 @@ mod tests {
 
         // -30 degrees round trip
         let result = sincosd(Degrees(-30.0));
-        assert_eq!(-0.5, result.0 .0);
-        assert_eq!(COS_30_DEGREES, result.1 .0);
+        assert_eq!(-0.5, result.0.0);
+        assert_eq!(COS_30_DEGREES, result.1.0);
         assert_eq!(-30.0, arctan2d(result.0, result.1).0);
 
         // 60 degrees round trip
         let result = sincosd(Degrees(60.0));
-        assert_eq!(COS_30_DEGREES, result.0 .0);
-        assert_eq!(0.5, result.1 .0);
+        assert_eq!(COS_30_DEGREES, result.0.0);
+        assert_eq!(0.5, result.1.0);
         assert_eq!(60.0, arctan2d(result.0, result.1).0);
 
         // -180 degrees round trip to +180 degrees
         let result = sincosd(Degrees(-180.0));
-        assert_eq!(0.0, result.0 .0);
-        assert_eq!(-1.0, result.1 .0);
+        assert_eq!(0.0, result.0.0);
+        assert_eq!(-1.0, result.1.0);
         assert_eq!(180.0, arctan2d(result.0, result.1).0);
 
         // 180 - 45 degrees round trip
         let result = sincosd_diff(Degrees(180.0), Degrees(45.0));
-        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, result.0 .0);
-        assert_eq!(-core::f64::consts::FRAC_1_SQRT_2, result.1 .0);
+        assert_eq!(core::f64::consts::FRAC_1_SQRT_2, result.0.0);
+        assert_eq!(-core::f64::consts::FRAC_1_SQRT_2, result.1.0);
         assert_eq!(180.0 - 45.0, arctan2d(result.0, result.1).0);
 
         // 1080 - 60 degrees round trip
         let result = sincosd_diff(Degrees(1080.0), Degrees(60.0));
-        assert_eq!(-COS_30_DEGREES, result.0 .0);
-        assert_eq!(0.5, result.1 .0);
+        assert_eq!(-COS_30_DEGREES, result.0.0);
+        assert_eq!(0.5, result.1.0);
         assert_eq!(-60.0, arctan2d(result.0, result.1).0);
     }
 

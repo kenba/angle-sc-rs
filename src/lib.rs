@@ -856,11 +856,7 @@ pub fn min<T>(a: T, b: T) -> T
 where
     T: PartialOrd + Copy,
 {
-    if b < a {
-        b
-    } else {
-        a
-    }
+    if b < a { b } else { a }
 }
 
 /// Return the maximum of a or b.
@@ -869,11 +865,7 @@ pub fn max<T>(a: T, b: T) -> T
 where
     T: PartialOrd + Copy,
 {
-    if b < a {
-        a
-    } else {
-        b
-    }
+    if b < a { a } else { b }
 }
 
 /// The Validate trait.

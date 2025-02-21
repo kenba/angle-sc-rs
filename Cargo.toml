@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["geometry", "trigonometry", "angle", "degrees", "radians"]
 categories = ["mathematics", "no-std"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 libm = "0.2"
