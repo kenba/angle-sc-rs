@@ -280,7 +280,7 @@ impl Radians {
     /// assert_eq!(Radians(1.0), value.clamp(Radians(1.0)));
     /// ```
     #[must_use]
-    pub fn clamp(self, max_value: Self) -> Self {
+    pub const fn clamp(self, max_value: Self) -> Self {
         Self(self.0.clamp(0.0, max_value.0))
     }
 }

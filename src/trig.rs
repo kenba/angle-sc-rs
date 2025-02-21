@@ -109,7 +109,7 @@ impl UnitNegRange {
     /// assert_eq!(1.0, UnitNegRange::clamp(1.0 + f64::EPSILON).0);
     /// ```
     #[must_use]
-    pub fn clamp(value: f64) -> Self {
+    pub const fn clamp(value: f64) -> Self {
         Self(value.clamp(-1.0, 1.0))
     }
 
