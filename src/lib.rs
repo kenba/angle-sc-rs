@@ -54,11 +54,11 @@
 //!
 //! * `Degrees`, `Radians` and `Angle` types;
 //! * functions for accurately calculating sines and cosines of angles in `Degrees` or `Radians`
-//!     using [remquo](https://pubs.opengroup.org/onlinepubs/9699919799/functions/remquo.html);
+//!   using [remquo](https://pubs.opengroup.org/onlinepubs/9699919799/functions/remquo.html);
 //! * functions for accurately calculating sines and cosines of differences of angles in `Degrees` or `Radians`
-//!     using the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm;
+//!   using the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm;
 //! * functions for accurately calculating sums and differences of `Angles` using
-//!     [trigonometric identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities);
+//!   [trigonometric identities](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Angle_sum_and_difference_identities);
 //! * and some [spherical trigonometry](https://en.wikipedia.org/wiki/Spherical_trigonometry) functions.
 //! * The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html).
 //!

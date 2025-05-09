@@ -1,10 +1,11 @@
 @startuml
 
-'Copyright (c) 2024 Via Technology Ltd. All Rights Reserved.
+'Copyright (c) 2024-2025 Via Technology Ltd. All Rights Reserved.
 
 ' title Angle Class Diagram
 
 set namespaceSeparator ::
+
     class Angle {
         - sin
         - cos
@@ -21,4 +22,5 @@ set namespaceSeparator ::
     Angle .. Degrees
     Angle .. Radians
     Angle *-- "2" trig::UnitNegRange
+
 @enduml

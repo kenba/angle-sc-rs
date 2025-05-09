@@ -96,7 +96,7 @@ The [trig](src/trig.rs) module contains accurate and efficient trigonometry func
 The `Angle` struct represents an angle by its sine and cosine instead of in
 `degrees` or `radians`, see *Figure 2*.
 
-![Angle Class Diagram](docs/images/angle_class_diagram.svg)
+![Angle Class Diagram](docs/images/angle_class_diagram.svg)  
 *Figure 2 Angle Class Diagram*
 
 This representation an angle makes functions such as
