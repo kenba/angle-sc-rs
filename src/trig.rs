@@ -185,7 +185,12 @@ pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
 #[must_use]
 pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
     if a.abs().0 > MAX_COS_ANGLE_IS_ONE.0 {
-        UnitNegRange(libm::copysign(swap_sin_cos(a).0, sign))
+        let b = swap_sin_cos(a);
+        if b.0 > 0.0 {
+            UnitNegRange(libm::copysign(b.0, sign))
+        } else {
+            b
+        }
     } else {
         UnitNegRange(libm::copysign(1.0, sign))
     }
@@ -647,6 +652,10 @@ mod tests {
 
         let sin_120 = sin_60;
         let cos_120 = cosine_from_sine(sin_120, -1.0);
+
+        let zero = cosine_from_sine(UnitNegRange(1.0), -1.0);
+        assert_eq!(0.0, zero.0);
+        assert!(zero.0.is_sign_positive());
 
         let recip_sq_epsilon = 1.0 / SQ_EPSILON;
 
