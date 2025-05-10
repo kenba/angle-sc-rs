@@ -93,7 +93,15 @@ fn to_radians(angle: Degrees) -> Radians {
 /// The `UnitNegRange` newtype an f64.
 /// A valid `UnitNegRange` value lies between -1.0 and +1.0 inclusive.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[repr(transparent)]
 pub struct UnitNegRange(pub f64);
+
+impl Default for UnitNegRange {
+    #[must_use]
+    fn default() -> Self {
+        Self(0.0)
+    }
+}
 
 impl UnitNegRange {
     /// Clamp value into the valid range: -1.0 to +1.0 inclusive.
@@ -611,6 +619,8 @@ mod tests {
 
     #[test]
     fn unit_neg_range_traits() {
+        let zero = UnitNegRange::default();
+        assert_eq!(UnitNegRange(0.0), zero);
         let one = UnitNegRange(1.0);
 
         let one_clone = one.clone();

@@ -140,6 +140,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// The Degrees newtype an f64.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[repr(transparent)]
 pub struct Degrees(pub f64);
 
 impl Degrees {
@@ -246,6 +247,7 @@ impl SubAssign for Degrees {
 
 /// The Radians newtype an f64.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[repr(transparent)]
 pub struct Radians(pub f64);
 
 impl Radians {
