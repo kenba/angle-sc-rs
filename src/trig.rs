@@ -97,7 +97,6 @@ fn to_radians(angle: Degrees) -> Radians {
 pub struct UnitNegRange(pub f64);
 
 impl Default for UnitNegRange {
-    #[must_use]
     fn default() -> Self {
         Self(0.0)
     }

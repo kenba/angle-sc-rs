@@ -162,7 +162,6 @@ impl Degrees {
 }
 
 impl Default for Degrees {
-    #[must_use]
     fn default() -> Self {
         Self(0.0)
     }
@@ -180,7 +179,6 @@ impl Neg for Degrees {
     /// let result_m45 = -angle_45;
     /// assert_eq!(-45.0, result_m45.0);
     /// ```
-    #[must_use]
     fn neg(self) -> Self {
         Self(0.0 - self.0)
     }
@@ -200,7 +198,6 @@ impl Add for Degrees {
     /// let result = angle_120 + angle_120;
     /// assert_eq!(-angle_120, result);
     /// ```
-    #[must_use]
     fn add(self, other: Self) -> Self::Output {
         let (s, t) = two_sum(self.0, other.0);
         Self(if s <= -180.0 {
@@ -233,7 +230,6 @@ impl Sub for Degrees {
     /// let result = -angle_120 - angle_120;
     /// assert_eq!(angle_120, result);
     /// ```
-    #[must_use]
     fn sub(self, other: Self) -> Self::Output {
         self + -other
     }
@@ -288,7 +284,6 @@ impl Radians {
 }
 
 impl Default for Radians {
-    #[must_use]
     fn default() -> Self {
         Self(0.0)
     }
@@ -306,7 +301,6 @@ impl Neg for Radians {
     /// let result_m45 = -angle_45;
     /// assert_eq!(-core::f64::consts::FRAC_PI_4, result_m45.0);
     /// ```
-    #[must_use]
     fn neg(self) -> Self {
         Self(0.0 - self.0)
     }
@@ -326,7 +320,6 @@ impl Add for Radians {
     /// let result = angle_120 + angle_120;
     /// assert!(is_within_tolerance(-2.0 * core::f64::consts::FRAC_PI_3, result.0,  4.0 * f64::EPSILON));
     /// ```
-    #[must_use]
     fn add(self, other: Self) -> Self::Output {
         let (s, t) = two_sum(self.0, other.0);
         Self(if s <= -core::f64::consts::PI {
@@ -360,7 +353,6 @@ impl Sub for Radians {
     /// let result = angle_m120 - angle_120;
     /// assert!(is_within_tolerance(angle_120.0, result.0,  4.0 * f64::EPSILON));
     /// ```
-    #[must_use]
     fn sub(self, other: Self) -> Self::Output {
         self + -other
     }
@@ -393,7 +385,6 @@ impl Default for Angle {
     /// assert_eq!(0.0, zero.sin().0);
     /// assert_eq!(1.0, zero.cos().0);
     /// ```
-    #[must_use]
     fn default() -> Self {
         Self {
             sin: trig::UnitNegRange(0.0),
@@ -624,7 +615,6 @@ impl Neg for Angle {
     /// let result_m45 = -angle_45;
     /// assert_eq!(Degrees(-45.0), Degrees::from(result_m45));
     /// ```
-    #[must_use]
     fn neg(self) -> Self {
         Self {
             sin: -self.sin,
@@ -648,7 +638,6 @@ impl Add for Angle {
     /// let result_90 = angle_30 + angle_60;
     /// assert_eq!(Degrees(90.0), Degrees::from(result_90));
     /// ```
-    #[must_use]
     fn add(self, other: Self) -> Self::Output {
         Self {
             sin: trig::sine_sum(self.sin, self.cos, other.sin, other.cos),
@@ -679,7 +668,6 @@ impl Sub for Angle {
     ///
     /// assert!(is_within_tolerance(Degrees(30.0).0, Degrees::from(result_30).0, 32.0 * f64::EPSILON));
     /// ```
-    #[must_use]
     fn sub(self, other: Self) -> Self::Output {
         Self {
             sin: trig::sine_diff(self.sin, self.cos, other.sin, other.cos),
@@ -724,7 +712,6 @@ impl From<Degrees> for Angle {
     /// assert_eq!(0.5, angle.cos().0);
     /// assert_eq!(60.0, Degrees::from(angle).0);
     /// ```
-    #[must_use]
     fn from(a: Degrees) -> Self {
         let (sin, cos) = trig::sincosd(a);
         Self { sin, cos }
@@ -745,7 +732,6 @@ impl From<(Degrees, Degrees)> for Angle {
     /// assert_eq!(trig::COS_30_DEGREES, angle.cos().0);
     /// assert_eq!(30.0, Degrees::from(angle).0);
     /// ```
-    #[must_use]
     fn from(params: (Degrees, Degrees)) -> Self {
         let (sin, cos) = trig::sincosd_diff(params.0, params.1);
         Self { sin, cos }
@@ -764,7 +750,6 @@ impl From<Radians> for Angle {
     /// assert_eq!(trig::COS_30_DEGREES, angle.cos().0);
     /// assert_eq!(-core::f64::consts::FRAC_PI_6, Radians::from(angle).0);
     /// ```
-    #[must_use]
     fn from(a: Radians) -> Self {
         let (sin, cos) = trig::sincos(a);
         Self { sin, cos }
@@ -786,7 +771,6 @@ impl From<(Radians, Radians)> for Angle {
     /// ));
     /// assert_eq!(-core::f64::consts::FRAC_PI_3, Radians::from(angle).0);
     /// ```
-    #[must_use]
     fn from(params: (Radians, Radians)) -> Self {
         let (sin, cos) = trig::sincos_diff(params.0, params.1);
         Self { sin, cos }
@@ -795,7 +779,6 @@ impl From<(Radians, Radians)> for Angle {
 
 impl From<Angle> for Radians {
     /// Convert an Angle to Radians.
-    #[must_use]
     fn from(a: Angle) -> Self {
         trig::arctan2(a.sin, a.cos)
     }
@@ -803,7 +786,6 @@ impl From<Angle> for Radians {
 
 impl From<Angle> for Degrees {
     /// Convert an Angle to Degrees.
-    #[must_use]
     fn from(a: Angle) -> Self {
         trig::arctan2d(a.sin, a.cos)
     }
