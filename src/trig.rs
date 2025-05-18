@@ -157,6 +157,17 @@ impl Neg for UnitNegRange {
     }
 }
 
+/// Calculate 1 - a * a:
+///
+/// Note: calculates (1 - a) * (1 + a) to minimize round-off error.
+/// * `a` the value.
+///
+/// return (1 - a) * (1 + a)
+#[must_use]
+pub fn one_minus_sq_value(a: UnitNegRange) -> UnitNegRange {
+    UnitNegRange((1.0 - a.0) * (1.0 + a.0))
+}
+
 /// Swap the sine into the cosine of an angle and vice versa.
 ///
 /// Uses the identity sin<sup>2</sup> + cos<sup>2</sup> = 1.
@@ -173,7 +184,7 @@ impl Neg for UnitNegRange {
 /// ```
 #[must_use]
 pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
-    UnitNegRange::clamp(libm::sqrt((1.0 - a.0) * (1.0 + a.0)))
+    UnitNegRange(libm::sqrt(one_minus_sq_value(a).0))
 }
 
 /// Calculate the cosine of an angle from it's sine and the sign of the cosine.
