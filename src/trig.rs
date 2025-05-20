@@ -157,15 +157,26 @@ impl Neg for UnitNegRange {
     }
 }
 
-/// Calculate 1 - a * a:
+/// Calculate a * a - b * b.
+///
+/// Note: calculates (a - b) * (a + b) to minimize round-off error.
+/// * `a`, `b` the values.
+///
+/// returns (a - b) * (a + b)
+#[must_use]
+pub fn sq_a_minus_sq_b(a: UnitNegRange, b: UnitNegRange) -> UnitNegRange {
+    UnitNegRange((a.0 - b.0) * (a.0 + b.0))
+}
+
+/// Calculate 1 - a * a.
 ///
 /// Note: calculates (1 - a) * (1 + a) to minimize round-off error.
 /// * `a` the value.
 ///
-/// return (1 - a) * (1 + a)
+/// returns (1 - a) * (1 + a)
 #[must_use]
 pub fn one_minus_sq_value(a: UnitNegRange) -> UnitNegRange {
-    UnitNegRange((1.0 - a.0) * (1.0 + a.0))
+    sq_a_minus_sq_b(UnitNegRange(1.0), a)
 }
 
 /// Swap the sine into the cosine of an angle and vice versa.

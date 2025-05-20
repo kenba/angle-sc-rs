@@ -575,7 +575,7 @@ impl Angle {
     pub fn double(self) -> Self {
         Self {
             sin: trig::UnitNegRange::clamp(2.0 * self.sin.0 * self.cos.0),
-            cos: trig::UnitNegRange::clamp((self.cos.0 - self.sin.0) * (self.cos.0 + self.sin.0)),
+            cos: trig::sq_a_minus_sq_b(self.cos, self.sin),
         }
     }
 
