@@ -1,6 +1,6 @@
 [package]
 name = "angle-sc"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Ken Barker <ken.barker@via-technology.aero>"]
 description = "A Rust library for performing accurate and efficient trigonometry calculations."
 documentation = "https://docs.rs/angle-sc/"
