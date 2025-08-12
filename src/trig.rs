@@ -61,6 +61,7 @@
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
 use crate::{Degrees, Radians, Validate, two_sum};
+use core::cmp::Ordering;
 use core::{f64, ops::Neg};
 
 /// ε * ε, a very small number.
@@ -230,10 +231,10 @@ pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
 /// Corrects sin ±π/4 to ±1/√2.
 #[must_use]
 pub fn sine(angle: Radians) -> UnitNegRange {
-    let angle_abs = angle.abs();
-    if angle_abs.0 == core::f64::consts::FRAC_PI_4 {
+    let angle_abs = angle.0.abs();
+    if angle_abs == core::f64::consts::FRAC_PI_4 {
         UnitNegRange(libm::copysign(core::f64::consts::FRAC_1_SQRT_2, angle.0))
-    } else if angle_abs > MAX_LINEAR_SIN_ANGLE {
+    } else if angle_abs > MAX_LINEAR_SIN_ANGLE.0 {
         UnitNegRange(libm::sin(angle.0))
     } else {
         UnitNegRange(angle.0)
@@ -319,22 +320,24 @@ pub fn sincos_diff(a: Radians, b: Radians) -> (UnitNegRange, UnitNegRange) {
 /// * `sin`, `cos` the sine and cosine of the angle in `UnitNegRange`s.
 ///
 /// returns the angle in `Radians`.
+///
+/// # Panics
+///
+/// Panics if `sin` or `cos` are `NaN`.
 #[must_use]
 pub fn arctan2(sin: UnitNegRange, cos: UnitNegRange) -> Radians {
     let sin_abs = sin.0.abs();
     let cos_abs = cos.0.abs();
 
     // calculate radians in the range 0.0..=PI/2
-    let radians_pi_2 = if cos_abs == sin_abs {
-        core::f64::consts::FRAC_PI_4
-    } else if sin_abs < cos_abs {
-        libm::atan2(sin_abs, cos_abs)
-    } else {
-        core::f64::consts::FRAC_PI_2 - libm::atan2(cos_abs, sin_abs)
+    let radians_pi_2 = match sin_abs.partial_cmp(&cos_abs).expect("sin or cos is NaN") {
+        Ordering::Equal => core::f64::consts::FRAC_PI_4,
+        Ordering::Less => libm::atan2(sin_abs, cos_abs),
+        Ordering::Greater => core::f64::consts::FRAC_PI_2 - libm::atan2(cos_abs, sin_abs),
     };
 
     // calculate radians in the range 0.0..=PI
-    let radians_pi = if cos.0.is_sign_negative() {
+    let radians_pi = if cos.0 < 0.0 {
         core::f64::consts::PI - radians_pi_2
     } else {
         radians_pi_2
@@ -399,22 +402,23 @@ fn arctan2_degrees(sin_abs: f64, cos_abs: f64) -> f64 {
 /// * `sin`, `cos` the sine and cosine of the angle in `UnitNegRange`s.
 ///
 /// returns the angle in `Degrees`.
+/// # Panics
+///
+/// Panics if `sin` or `cos` are `NaN`.
 #[must_use]
 pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
     let sin_abs = sin.0.abs();
     let cos_abs = cos.0.abs();
 
     // calculate degrees in the range 0.0..=90.0
-    let degrees_90 = if cos_abs == sin_abs {
-        45.0
-    } else if sin_abs < cos_abs {
-        arctan2_degrees(sin_abs, cos_abs)
-    } else {
-        90.0 - arctan2_degrees(cos_abs, sin_abs)
+    let degrees_90 = match sin_abs.partial_cmp(&cos_abs).expect("sin or cos is NaN") {
+        Ordering::Equal => 45.0,
+        Ordering::Less => arctan2_degrees(sin_abs, cos_abs),
+        Ordering::Greater => 90.0 - arctan2_degrees(cos_abs, sin_abs),
     };
 
     // calculate degrees in the range 0° <= degrees <= 180°
-    let degrees_180 = if cos.0.is_sign_negative() {
+    let degrees_180 = if cos.0 < 0.0 {
         180.0 - degrees_90
     } else {
         degrees_90
@@ -459,8 +463,7 @@ pub fn sec(cos: UnitNegRange) -> Option<f64> {
 /// returns the tangent or `None` if `cos < SQ_EPSILON`
 #[must_use]
 pub fn tan(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
-    let secant = sec(cos)?;
-    Some(sin.0 * secant)
+    sec(cos).map(|secant| sin.0 * secant)
 }
 
 /// The cotangent of an angle.
@@ -470,8 +473,7 @@ pub fn tan(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
 /// returns the cotangent or `None` if `sin < SQ_EPSILON`
 #[must_use]
 pub fn cot(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
-    let cosecant = csc(sin)?;
-    Some(cos.0 * cosecant)
+    csc(sin).map(|cosecant| cos.0 * cosecant)
 }
 
 /// Calculate the sine of the difference of two angles: a - b.

@@ -153,7 +153,7 @@ impl Degrees {
     /// The opposite angle on the circle, i.e. +/- 180 degrees.
     #[must_use]
     pub fn opposite(self) -> Self {
-        Self(if 0.0 < self.0 {
+        Self(if self.0 > 0.0 {
             self.0 - 180.0
         } else {
             self.0 + 180.0
@@ -256,7 +256,7 @@ impl Radians {
     /// The opposite angle on the circle, i.e. +/- PI.
     #[must_use]
     pub fn opposite(self) -> Self {
-        Self(if 0.0 < self.0 {
+        Self(if self.0 > 0.0 {
             self.0 - core::f64::consts::PI
         } else {
             self.0 + core::f64::consts::PI
