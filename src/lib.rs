@@ -146,8 +146,8 @@ pub struct Degrees(pub f64);
 impl Degrees {
     /// The absolute value of the angle.
     #[must_use]
-    pub fn abs(self) -> Self {
-        Self(libm::fabs(self.0))
+    pub const fn abs(self) -> Self {
+        Self(self.0.abs())
     }
 
     /// The opposite angle on the circle, i.e. +/- 180 degrees.
@@ -249,8 +249,8 @@ pub struct Radians(pub f64);
 impl Radians {
     /// The absolute value of the angle.
     #[must_use]
-    pub fn abs(self) -> Self {
-        Self(libm::fabs(self.0))
+    pub const fn abs(self) -> Self {
+        Self(self.0.abs())
     }
 
     /// The opposite angle on the circle, i.e. +/- PI.
@@ -480,7 +480,7 @@ impl Angle {
     /// assert_eq!(Degrees(45.0), Degrees::from(result_45));
     /// ```
     #[must_use]
-    pub fn abs(self) -> Self {
+    pub const fn abs(self) -> Self {
         Self {
             sin: self.sin.abs(),
             cos: self.cos,

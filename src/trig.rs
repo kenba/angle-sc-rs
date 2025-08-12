@@ -83,7 +83,7 @@ pub const MAX_COS_ANGLE_IS_ONE: Radians = Radians(3.35e7 * f64::EPSILON);
 /// Corrects ±30° to ±π/6.
 #[must_use]
 fn to_radians(angle: Degrees) -> Radians {
-    if angle.abs().0 == 30.0 {
+    if angle.0.abs() == 30.0 {
         Radians(libm::copysign(core::f64::consts::FRAC_PI_6, angle.0))
     } else {
         Radians(angle.0.to_radians())
@@ -122,8 +122,8 @@ impl UnitNegRange {
 
     /// The absolute value of the `UnitNegRange`.
     #[must_use]
-    pub fn abs(self) -> Self {
-        Self(libm::fabs(self.0))
+    pub const fn abs(self) -> Self {
+        Self(self.0.abs())
     }
 }
 
@@ -213,7 +213,7 @@ pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
 /// ```
 #[must_use]
 pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
-    if a.abs().0 > MAX_COS_ANGLE_IS_ONE.0 {
+    if a.0.abs() > MAX_COS_ANGLE_IS_ONE.0 {
         let b = swap_sin_cos(a);
         if b.0 > 0.0 {
             UnitNegRange(libm::copysign(b.0, sign))
@@ -245,14 +245,14 @@ pub fn sine(angle: Radians) -> UnitNegRange {
 /// Corrects cos π/4 to 1/√2.
 #[must_use]
 pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
-    let angle_abs = angle.abs();
-    if angle_abs.0 == core::f64::consts::FRAC_PI_4 {
+    let angle_abs = angle.0.abs();
+    if angle_abs == core::f64::consts::FRAC_PI_4 {
         UnitNegRange(libm::copysign(
             core::f64::consts::FRAC_1_SQRT_2,
-            core::f64::consts::FRAC_PI_2 - angle_abs.0,
+            core::f64::consts::FRAC_PI_2 - angle_abs,
         ))
     } else {
-        cosine_from_sine(sin, core::f64::consts::FRAC_PI_2 - angle_abs.0)
+        cosine_from_sine(sin, core::f64::consts::FRAC_PI_2 - angle_abs)
     }
 }
 
@@ -321,8 +321,8 @@ pub fn sincos_diff(a: Radians, b: Radians) -> (UnitNegRange, UnitNegRange) {
 /// returns the angle in `Radians`.
 #[must_use]
 pub fn arctan2(sin: UnitNegRange, cos: UnitNegRange) -> Radians {
-    let sin_abs = sin.abs().0;
-    let cos_abs = cos.abs().0;
+    let sin_abs = sin.0.abs();
+    let cos_abs = cos.0.abs();
 
     // calculate radians in the range 0.0..=PI/2
     let radians_pi_2 = if cos_abs == sin_abs {
@@ -401,8 +401,8 @@ fn arctan2_degrees(sin_abs: f64, cos_abs: f64) -> f64 {
 /// returns the angle in `Degrees`.
 #[must_use]
 pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
-    let sin_abs = sin.abs().0;
-    let cos_abs = cos.abs().0;
+    let sin_abs = sin.0.abs();
+    let cos_abs = cos.0.abs();
 
     // calculate degrees in the range 0.0..=90.0
     let degrees_90 = if cos_abs == sin_abs {
@@ -431,7 +431,7 @@ pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
 /// returns the cosecant or `None` if `sin < SQ_EPSILON`
 #[must_use]
 pub fn csc(sin: UnitNegRange) -> Option<f64> {
-    if sin.abs().0 >= SQ_EPSILON {
+    if sin.0.abs() >= SQ_EPSILON {
         Some(1.0 / sin.0)
     } else {
         None
@@ -445,7 +445,7 @@ pub fn csc(sin: UnitNegRange) -> Option<f64> {
 /// returns the secant or `None` if `cos < SQ_EPSILON`
 #[must_use]
 pub fn sec(cos: UnitNegRange) -> Option<f64> {
-    if cos.abs().0 >= SQ_EPSILON {
+    if cos.0.abs() >= SQ_EPSILON {
         Some(1.0 / cos.0)
     } else {
         None
