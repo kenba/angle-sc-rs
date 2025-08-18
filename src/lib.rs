@@ -150,6 +150,12 @@ impl Degrees {
         Self(self.0.abs())
     }
 
+    /// Half of the angle.
+    #[must_use]
+    pub fn half(self) -> Self {
+        Self(0.5 * self.0)
+    }
+
     /// The opposite angle on the circle, i.e. +/- 180 degrees.
     #[must_use]
     pub fn opposite(self) -> Self {
@@ -187,7 +193,7 @@ impl Neg for Degrees {
 impl Add for Degrees {
     type Output = Self;
 
-    /// Add a pair of angles in Degrees, wraps around +/-180.
+    /// Add a pair of angles in Degrees, wraps around +/-180 degrees.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -219,7 +225,7 @@ impl AddAssign for Degrees {
 impl Sub for Degrees {
     type Output = Self;
 
-    /// Subtract a pair of angles in Degrees, wraps around +/-180.
+    /// Subtract a pair of angles in Degrees, wraps around +/-180 degrees.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -251,6 +257,12 @@ impl Radians {
     #[must_use]
     pub const fn abs(self) -> Self {
         Self(self.0.abs())
+    }
+
+    /// Half of the angle.
+    #[must_use]
+    pub fn half(self) -> Self {
+        Self(0.5 * self.0)
     }
 
     /// The opposite angle on the circle, i.e. +/- PI.
@@ -341,7 +353,7 @@ impl AddAssign for Radians {
 impl Sub for Radians {
     type Output = Self;
 
-    /// Subtract a pair of angles in Radians,  wraps around +/-PI.
+    /// Subtract a pair of angles in Radians, wraps around +/-PI.
     /// Uses the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm to reduce
     /// round-off error.
     /// # Examples
@@ -898,6 +910,7 @@ mod tests {
         assert_eq!(m_one, -one);
 
         assert_eq!(one, m_one.abs());
+        assert_eq!(one, two.half());
 
         assert_eq!(m_one, one - two);
         one_clone -= two;
@@ -944,6 +957,7 @@ mod tests {
         assert_eq!(m_one, -one);
 
         assert_eq!(one, m_one.abs());
+        assert_eq!(one, two.half());
 
         assert_eq!(m_one, one - two);
         one_clone -= two;
