@@ -50,6 +50,7 @@ using the [2Sum](https://en.wikipedia.org/wiki/2Sum) algorithm;
 The following example shows the `round-off error` inherent in calculating angles in `radians`.
 It calculates the correct sine and cosine for 60° and converts them back
 precisely to 60°, but it fails to convert them to the precise angle in `radians`: π/3.
+
 ```rust
 use angle_sc::{Angle, Degrees, Radians, is_within_tolerance, trig};
 
@@ -74,6 +75,7 @@ It is particularly useful for implementing the
 [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
 which requires sines and cosines of both longitude and latitude differences.
 Note: in this example sine and cosine of 30° are converted precisely to π/6.
+
 ```rust
 use angle_sc::{Angle, Degrees, Radians, trig};
 

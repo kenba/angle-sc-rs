@@ -20,8 +20,8 @@
 
 //! The `trig` module contains functions for performing accurate trigonometry calculations.
 //!
-//! The accuracy of the `libm::sin` function is poor for angles >= π/4
-//! and the accuracy of the `libm::cos` function is poor for small angles,
+//! The accuracy of the `sin` function is poor for angles >= π/4
+//! and the accuracy of the `cos` function is poor for small angles,
 //! i.e., < π/4.
 //! So `sin` π/4 is explicitly set to 1/√2 and `cos` values are calculated
 //! from `sin` values using
@@ -61,8 +61,7 @@
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
 use crate::{Degrees, Radians, Validate, two_sum};
-use core::cmp::Ordering;
-use core::{f64, ops::Neg};
+use core::{cmp::Ordering, ops::Neg};
 
 /// ε * ε, a very small number.
 pub const SQ_EPSILON: f64 = f64::EPSILON * f64::EPSILON;
@@ -74,9 +73,9 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 
 /// The cosine of 30 degrees: √3/2
 pub const COS_30_DEGREES: f64 = SQRT_3 / 2.0;
-/// The maximum angle in Radians where: `libm::sin(value) == value`
+/// The maximum angle in Radians where: `sin(value) == value`
 pub const MAX_LINEAR_SIN_ANGLE: Radians = Radians(9.67e7 * f64::EPSILON);
-/// The maximum angle in Radians where: `swap_sin_cos(libm::sin(value)) == 1.0`
+/// The maximum angle in Radians where: `swap_sin_cos(sin(value)) == 1.0`
 pub const MAX_COS_ANGLE_IS_ONE: Radians = Radians(3.35e7 * f64::EPSILON);
 
 /// Convert an angle in `Degrees` to `Radians`.
@@ -85,7 +84,7 @@ pub const MAX_COS_ANGLE_IS_ONE: Radians = Radians(3.35e7 * f64::EPSILON);
 #[must_use]
 fn to_radians(angle: Degrees) -> Radians {
     if angle.0.abs() == 30.0 {
-        Radians(libm::copysign(core::f64::consts::FRAC_PI_6, angle.0))
+        Radians(core::f64::consts::FRAC_PI_6.copysign(angle.0))
     } else {
         Radians(angle.0.to_radians())
     }
@@ -217,12 +216,12 @@ pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
     if a.0.abs() > MAX_COS_ANGLE_IS_ONE.0 {
         let b = swap_sin_cos(a);
         if b.0 > 0.0 {
-            UnitNegRange(libm::copysign(b.0, sign))
+            UnitNegRange(b.0.copysign(sign))
         } else {
             b
         }
     } else {
-        UnitNegRange(libm::copysign(1.0, sign))
+        UnitNegRange(1.0_f64.copysign(sign))
     }
 }
 
@@ -233,7 +232,7 @@ pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
 pub fn sine(angle: Radians) -> UnitNegRange {
     let angle_abs = angle.0.abs();
     if angle_abs == core::f64::consts::FRAC_PI_4 {
-        UnitNegRange(libm::copysign(core::f64::consts::FRAC_1_SQRT_2, angle.0))
+        UnitNegRange(core::f64::consts::FRAC_1_SQRT_2.copysign(angle.0))
     } else if angle_abs > MAX_LINEAR_SIN_ANGLE.0 {
         UnitNegRange(libm::sin(angle.0))
     } else {
@@ -248,10 +247,9 @@ pub fn sine(angle: Radians) -> UnitNegRange {
 pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
     let angle_abs = angle.0.abs();
     if angle_abs == core::f64::consts::FRAC_PI_4 {
-        UnitNegRange(libm::copysign(
-            core::f64::consts::FRAC_1_SQRT_2,
-            core::f64::consts::FRAC_PI_2 - angle_abs,
-        ))
+        UnitNegRange(
+            core::f64::consts::FRAC_1_SQRT_2.copysign(core::f64::consts::FRAC_PI_2 - angle_abs),
+        )
     } else {
         cosine_from_sine(sin, core::f64::consts::FRAC_PI_2 - angle_abs)
     }
@@ -344,7 +342,7 @@ pub fn arctan2(sin: UnitNegRange, cos: UnitNegRange) -> Radians {
     };
 
     // return radians in the range -π < radians <= π
-    Radians(libm::copysign(radians_pi, sin.0))
+    Radians(radians_pi.copysign(sin.0))
 }
 
 /// Calculate the sine and cosine of an angle from a value in `Degrees`.
@@ -425,7 +423,7 @@ pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
     };
 
     // return degrees in the range -180° < degrees <= 180°
-    Degrees(libm::copysign(degrees_180, sin.0))
+    Degrees(degrees_180.copysign(sin.0))
 }
 
 /// The cosecant of an angle.
@@ -718,14 +716,10 @@ mod tests {
         ));
 
         let result = sq_sine_half(cos_120);
-        assert_eq!(sin_60.0, libm::sqrt(result));
+        assert_eq!(sin_60.0, result.sqrt());
 
         let result = sq_cosine_half(cos_120);
-        assert!(is_within_tolerance(
-            cos_60.0,
-            libm::sqrt(result),
-            f64::EPSILON
-        ));
+        assert!(is_within_tolerance(cos_60.0, result.sqrt(), f64::EPSILON));
     }
 
     #[test]
@@ -736,21 +730,21 @@ mod tests {
         // Test cos(angle) == cosine(angle) for MAX_COS_ANGLE_IS_ONE
         let s = sine(MAX_COS_ANGLE_IS_ONE);
         assert_eq!(
-            libm::cos(MAX_COS_ANGLE_IS_ONE.0),
+            MAX_COS_ANGLE_IS_ONE.0.cos(),
             cosine(MAX_COS_ANGLE_IS_ONE, s).0
         );
-        assert_eq!(1.0, libm::cos(MAX_COS_ANGLE_IS_ONE.0));
+        assert_eq!(1.0, MAX_COS_ANGLE_IS_ONE.0.cos());
 
         // Test max angle where conventional cos(angle) == 1.0
         let angle = Radians(4.74e7 * f64::EPSILON);
-        assert_eq!(1.0, libm::cos(angle.0));
+        assert_eq!(1.0, angle.0.cos());
 
         // Note: cosine(angle) < cos(angle) at the given angle
         // cos(angle) is not accurate for angles close to zero.
         let s = sine(angle);
         let result = cosine(angle, s);
         assert_eq!(1.0 - f64::EPSILON / 2.0, result.0);
-        assert!(result.0 < libm::cos(angle.0));
+        assert!(result.0 < angle.0.cos());
     }
 
     #[test]
@@ -783,7 +777,7 @@ mod tests {
         // sine π/4 is off by Epsilon / 2
         assert_eq!(
             core::f64::consts::FRAC_1_SQRT_2 - 0.5 * f64::EPSILON,
-            libm::sin(core::f64::consts::FRAC_PI_4)
+            core::f64::consts::FRAC_PI_4.sin()
         );
 
         // -π/6 radians round trip

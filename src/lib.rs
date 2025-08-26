@@ -580,7 +580,7 @@ impl Angle {
     ///
     /// // Note: multiplication is not precise...
     /// // assert_eq!(Degrees(60.0), Degrees::from(result_60));
-    /// let delta_angle = libm::fabs(60.0 - Degrees::from(result_60).0);
+    /// let delta_angle = (60.0 - Degrees::from(result_60).0).abs();
     /// assert!(delta_angle <= 32.0 * f64::EPSILON);
     /// ```
     #[must_use]
@@ -605,10 +605,7 @@ impl Angle {
     #[must_use]
     pub fn half(self) -> Self {
         Self {
-            sin: trig::UnitNegRange(libm::copysign(
-                libm::sqrt(trig::sq_sine_half(self.cos)),
-                self.sin.0,
-            )),
+            sin: trig::UnitNegRange(libm::sqrt(trig::sq_sine_half(self.cos)).copysign(self.sin.0)),
             cos: trig::UnitNegRange(libm::sqrt(trig::sq_cosine_half(self.cos))),
         }
     }
@@ -1053,7 +1050,7 @@ mod tests {
         ));
         assert!(angle_30.is_valid());
         assert_eq!(0.5, angle_30.sin().0);
-        assert_eq!(libm::sqrt(3.0) / 2.0, angle_30.cos().0);
+        assert_eq!(3.0_f64.sqrt() / 2.0, angle_30.cos().0);
         assert_eq!(30.0, Degrees::from(angle_30).0);
         assert_eq!(core::f64::consts::FRAC_PI_6, Radians::from(angle_30).0);
 
@@ -1073,7 +1070,7 @@ mod tests {
 
         let angle_60 = Angle::from((Degrees(-140.0), Degrees(160.0)));
         assert!(angle_60.is_valid());
-        assert_eq!(libm::sqrt(3.0) / 2.0, angle_60.sin().0);
+        assert_eq!(3.0_f64.sqrt() / 2.0, angle_60.sin().0);
         assert_eq!(0.5, angle_60.cos().0);
         assert_eq!(60.0, Degrees::from(angle_60).0);
         // Fails because PI is irrational
@@ -1087,13 +1084,13 @@ mod tests {
         let angle_30 = Angle::from((Degrees(-155.0), Degrees(175.0)));
         // assert!(angle_30.is_valid());
         assert_eq!(0.5, angle_30.sin().0);
-        assert_eq!(libm::sqrt(3.0) / 2.0, angle_30.cos().0);
+        assert_eq!(3.0_f64.sqrt() / 2.0, angle_30.cos().0);
         assert_eq!(30.0, Degrees::from(angle_30).0);
         assert_eq!(core::f64::consts::FRAC_PI_6, Radians::from(angle_30).0);
 
         let angle_120 = Angle::from(Degrees(120.0));
         assert!(angle_120.is_valid());
-        assert_eq!(libm::sqrt(3.0) / 2.0, angle_120.sin().0);
+        assert_eq!(3.0_f64.sqrt() / 2.0, angle_120.sin().0);
         assert_eq!(-0.5, angle_120.cos().0);
         assert_eq!(120.0, Degrees::from(angle_120).0);
         assert_eq!(
@@ -1103,7 +1100,7 @@ mod tests {
 
         let angle_m120 = Angle::from(Degrees(-120.0));
         assert!(angle_m120.is_valid());
-        assert_eq!(-libm::sqrt(3.0) / 2.0, angle_m120.sin().0);
+        assert_eq!(-3.0_f64.sqrt() / 2.0, angle_m120.sin().0);
         assert_eq!(-0.5, angle_m120.cos().0);
         assert_eq!(-120.0, Degrees::from(angle_m120).0);
         assert_eq!(
