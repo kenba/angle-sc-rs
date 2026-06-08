@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2025 Ken Barker
+// Copyright (c) 2024-2026 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -133,6 +133,7 @@
 #![allow(clippy::float_cmp)]
 
 pub mod trig;
+pub mod vector2d;
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::From;
 use core::ops::{Add, AddAssign, Neg, Sub, SubAssign};

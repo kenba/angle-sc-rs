@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2025 Ken Barker
+// Copyright (c) 2024-2026 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -60,6 +60,8 @@
 
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
+#[allow(unused_imports)]
+use crate::vector2d;
 use crate::{Degrees, Radians, Validate, two_sum};
 use core::{cmp::Ordering, ops::Neg};
 
@@ -489,7 +491,7 @@ pub fn sine_diff(
     sin_b: UnitNegRange,
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
-    UnitNegRange::clamp(sin_a.0 * cos_b.0 - sin_b.0 * cos_a.0)
+    UnitNegRange::clamp(vector2d::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
 /// Calculate the sine of the sum of two angles: a + b.
@@ -525,7 +527,7 @@ pub fn cosine_diff(
     sin_b: UnitNegRange,
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
-    UnitNegRange::clamp(cos_a.0 * cos_b.0 + sin_a.0 * sin_b.0)
+    UnitNegRange::clamp(vector2d::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
 /// Calculate the cosine of the sum of two angles: a + b.
