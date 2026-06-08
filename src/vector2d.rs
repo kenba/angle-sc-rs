@@ -41,3 +41,22 @@ pub fn dot_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
 pub fn perp_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
     dot_product(a_0, a_1, b_1, -b_0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dot_product() {
+        assert_eq!(1.0, dot_product(1.0, 0.0, 1.0, 0.0));
+        assert_eq!(0.0, dot_product(1.0, 0.0, 0.0, 1.0));
+        assert_eq!(0.0, dot_product(0.0, 1.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn test_perp_product() {
+        assert_eq!(0.0, perp_product(1.0, 0.0, 1.0, 0.0));
+        assert_eq!(1.0, perp_product(1.0, 0.0, 0.0, 1.0));
+        assert_eq!(-1.0, perp_product(0.0, 1.0, 1.0, 0.0));
+    }
+}

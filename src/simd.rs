@@ -79,3 +79,26 @@ pub unsafe fn dot_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
 pub unsafe fn perp_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
     unsafe { dot2d(_mm_set_pd(a_1, a_0), _mm_set_pd(-b_0, b_1)) }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dot_product() {
+        unsafe {
+            assert_eq!(1.0, dot_product(1.0, 0.0, 1.0, 0.0));
+            assert_eq!(0.0, dot_product(1.0, 0.0, 0.0, 1.0));
+            assert_eq!(0.0, dot_product(0.0, 1.0, 1.0, 0.0));
+        }
+    }
+
+    #[test]
+    fn test_perp_product() {
+        unsafe {
+            assert_eq!(0.0, perp_product(1.0, 0.0, 1.0, 0.0));
+            assert_eq!(1.0, perp_product(1.0, 0.0, 0.0, 1.0));
+            assert_eq!(-1.0, perp_product(0.0, 1.0, 1.0, 0.0));
+        }
+    }
+}
