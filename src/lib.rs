@@ -132,6 +132,7 @@
 #![cfg_attr(not(test), no_std)]
 #![allow(clippy::float_cmp)]
 
+pub mod simd;
 pub mod trig;
 pub mod vector2d;
 use core::cmp::{Ordering, PartialOrd};

@@ -60,9 +60,9 @@
 
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
-#[allow(unused_imports)]
-use crate::vector2d;
 use crate::{Degrees, Radians, Validate, two_sum};
+#[allow(unused_imports)]
+use crate::{simd, vector2d};
 use core::{cmp::Ordering, ops::Neg};
 
 /// ε * ε, a very small number.
@@ -491,6 +491,12 @@ pub fn sine_diff(
     sin_b: UnitNegRange,
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    unsafe {
+        UnitNegRange::clamp(simd::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
+    }
+
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     UnitNegRange::clamp(vector2d::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
@@ -527,6 +533,12 @@ pub fn cosine_diff(
     sin_b: UnitNegRange,
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    unsafe {
+        UnitNegRange::clamp(simd::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
+    }
+
+    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     UnitNegRange::clamp(vector2d::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
