@@ -491,13 +491,11 @@ pub fn sine_diff(
     sin_b: UnitNegRange,
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    unsafe {
-        UnitNegRange::clamp(simd::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
+    if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
+        UnitNegRange::clamp(unsafe { simd::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0) })
+    } else {
+        UnitNegRange::clamp(vector2d::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
     }
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    UnitNegRange::clamp(vector2d::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
 /// Calculate the sine of the sum of two angles: a + b.
@@ -533,13 +531,11 @@ pub fn cosine_diff(
     sin_b: UnitNegRange,
     cos_b: UnitNegRange,
 ) -> UnitNegRange {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    unsafe {
-        UnitNegRange::clamp(simd::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
+    if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
+        UnitNegRange::clamp(unsafe { simd::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0) })
+    } else {
+        UnitNegRange::clamp(vector2d::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
     }
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    UnitNegRange::clamp(vector2d::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
 /// Calculate the cosine of the sum of two angles: a + b.
