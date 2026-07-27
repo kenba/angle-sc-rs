@@ -20,6 +20,8 @@
 
 //! The `vector2d` module contains 2D vector functions.
 
+use num_traits::Float;
+
 /// 2D vector dot product function: a . b.
 ///
 /// * `a_0`, `a_1` the first vector values.
@@ -27,7 +29,7 @@
 ///
 /// * returns the dot product of the 2D vectors.
 #[must_use]
-pub fn dot_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
+pub fn dot_product<T: Float>(a_0: T, a_1: T, b_0: T, b_1: T) -> T {
     a_0 * b_0 + a_1 * b_1
 }
 
@@ -38,7 +40,7 @@ pub fn dot_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
 ///
 /// * returns the perp product of the 2D vectors.
 #[must_use]
-pub fn perp_product(a_0: f64, a_1: f64, b_0: f64, b_1: f64) -> f64 {
+pub fn perp_product<T: Float>(a_0: T, a_1: T, b_0: T, b_1: T) -> T {
     dot_product(a_0, a_1, b_1, -b_0)
 }
 

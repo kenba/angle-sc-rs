@@ -132,50 +132,57 @@
 #![cfg_attr(not(test), no_std)]
 #![allow(clippy::float_cmp)]
 
-pub mod simd;
 pub mod trig;
 pub mod vector2d;
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::From;
 use core::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+use num_traits::{Float, float::FloatConst};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// The Degrees newtype an f64.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[repr(transparent)]
-pub struct Degrees(pub f64);
+pub const ONE_HUNDRED_AND_EIGHTY: f64 = 180.0;
+pub const THREE_HUNDRED_AND_SIXTY: f64 = 360.0;
 
-impl Degrees {
+/// The Degrees newtype an f64.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct Degrees<T: Float>(pub T);
+
+impl<T: Float> Degrees<T> {
     /// The absolute value of the angle.
     #[must_use]
-    pub const fn abs(self) -> Self {
+    pub fn abs(self) -> Self {
         Self(self.0.abs())
     }
 
     /// Half of the angle.
     #[must_use]
     pub fn half(self) -> Self {
-        Self(0.5 * self.0)
+        let half = T::one() / (T::one() + T::one());
+        Self(half * self.0)
     }
 
     /// The opposite angle on the circle, i.e. +/- 180 degrees.
+    #[allow(clippy::missing_panics_doc)]
     #[must_use]
     pub fn opposite(self) -> Self {
-        Self(if self.0 > 0.0 {
-            self.0 - 180.0
+        let one_eighty =
+            T::from(ONE_HUNDRED_AND_EIGHTY).expect("Could not convert constant to Float");
+        Self(if self.0 > T::zero() {
+            self.0 - one_eighty
         } else {
-            self.0 + 180.0
+            self.0 + one_eighty
         })
     }
 }
 
-impl Default for Degrees {
+impl<T: Float> Default for Degrees<T> {
     fn default() -> Self {
-        Self(0.0)
+        Self(T::zero())
     }
 }
 
-impl Neg for Degrees {
+impl<T: Float> Neg for Degrees<T> {
     type Output = Self;
 
     /// An implementation of Neg for Degrees, i.e. -angle.
@@ -187,12 +194,12 @@ impl Neg for Degrees {
     /// let result_m45 = -angle_45;
     /// assert_eq!(-45.0, result_m45.0);
     /// ```
-    fn neg(self) -> Self {
-        Self(0.0 - self.0)
+    fn neg(self) -> Self::Output {
+        Self(T::zero() - self.0)
     }
 }
 
-impl Add for Degrees {
+impl<T: Float> Add for Degrees<T> {
     type Output = Self;
 
     /// Add a pair of angles in Degrees, wraps around +/-180 degrees.
@@ -207,24 +214,28 @@ impl Add for Degrees {
     /// assert_eq!(-angle_120, result);
     /// ```
     fn add(self, other: Self) -> Self::Output {
+        let one_eighty =
+            T::from(ONE_HUNDRED_AND_EIGHTY).expect("Could not convert constant to Float");
+        let three_sixty =
+            T::from(THREE_HUNDRED_AND_SIXTY).expect("Could not convert constant to Float");
         let (s, t) = two_sum(self.0, other.0);
-        Self(if s <= -180.0 {
-            s + 360.0 + t
-        } else if s > 180.0 {
-            s - 360.0 + t
+        Self(if s <= -one_eighty {
+            s + three_sixty + t
+        } else if s > one_eighty {
+            s - three_sixty + t
         } else {
             s
         })
     }
 }
 
-impl AddAssign for Degrees {
+impl<T: Float> AddAssign for Degrees<T> {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
-impl Sub for Degrees {
+impl<T: Float> Sub for Degrees<T> {
     type Output = Self;
 
     /// Subtract a pair of angles in Degrees, wraps around +/-180 degrees.
@@ -243,37 +254,38 @@ impl Sub for Degrees {
     }
 }
 
-impl SubAssign for Degrees {
+impl<T: Float> SubAssign for Degrees<T> {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
 /// The Radians newtype an f64.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 #[repr(transparent)]
-pub struct Radians(pub f64);
+pub struct Radians<T: Float + FloatConst>(pub T);
 
-impl Radians {
+impl<T: Float + FloatConst> Radians<T> {
     /// The absolute value of the angle.
     #[must_use]
-    pub const fn abs(self) -> Self {
+    pub fn abs(self) -> Self {
         Self(self.0.abs())
     }
 
     /// Half of the angle.
     #[must_use]
     pub fn half(self) -> Self {
-        Self(0.5 * self.0)
+        let half = T::one() / (T::one() + T::one());
+        Self(half * self.0)
     }
 
     /// The opposite angle on the circle, i.e. +/- PI.
     #[must_use]
     pub fn opposite(self) -> Self {
-        Self(if self.0 > 0.0 {
-            self.0 - core::f64::consts::PI
+        Self(if self.0 > T::zero() {
+            self.0 - T::PI()
         } else {
-            self.0 + core::f64::consts::PI
+            self.0 + T::PI()
         })
     }
 
@@ -292,18 +304,18 @@ impl Radians {
     /// assert_eq!(Radians(1.0), value.clamp(Radians(1.0)));
     /// ```
     #[must_use]
-    pub const fn clamp(self, max_value: Self) -> Self {
-        Self(self.0.clamp(0.0, max_value.0))
+    pub fn clamp(self, max_value: Self) -> Self {
+        Self(self.0.clamp(T::zero(), max_value.0))
     }
 }
 
-impl Default for Radians {
+impl<T: Float + FloatConst> Default for Radians<T> {
     fn default() -> Self {
-        Self(0.0)
+        Self(T::zero())
     }
 }
 
-impl Neg for Radians {
+impl<T: Float + FloatConst> Neg for Radians<T> {
     type Output = Self;
 
     /// An implementation of Neg for Radians, i.e. -angle.
@@ -316,11 +328,11 @@ impl Neg for Radians {
     /// assert_eq!(-core::f64::consts::FRAC_PI_4, result_m45.0);
     /// ```
     fn neg(self) -> Self {
-        Self(0.0 - self.0)
+        Self(T::zero() - self.0)
     }
 }
 
-impl Add for Radians {
+impl<T: Float + FloatConst> Add for Radians<T> {
     type Output = Self;
 
     /// Add a pair of angles in Radians, wraps around +/-PI.
@@ -336,23 +348,23 @@ impl Add for Radians {
     /// ```
     fn add(self, other: Self) -> Self::Output {
         let (s, t) = two_sum(self.0, other.0);
-        Self(if s <= -core::f64::consts::PI {
-            s + core::f64::consts::TAU + t
-        } else if s > core::f64::consts::PI {
-            s - core::f64::consts::TAU + t
+        Self(if s <= -T::PI() {
+            s + T::TAU() + t
+        } else if s > T::PI() {
+            s - T::TAU() + t
         } else {
             s
         })
     }
 }
 
-impl AddAssign for Radians {
+impl<T: Float + FloatConst> AddAssign for Radians<T> {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
-impl Sub for Radians {
+impl<T: Float + FloatConst> Sub for Radians<T> {
     type Output = Self;
 
     /// Subtract a pair of angles in Radians, wraps around +/-PI.
@@ -372,65 +384,70 @@ impl Sub for Radians {
     }
 }
 
-impl SubAssign for Radians {
+impl<T: Float + FloatConst> SubAssign for Radians<T> {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
 /// An angle represented by it's sine and cosine as `UnitNegRanges`.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Angle {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Angle<T: Float> {
     /// The sine of the angle.
-    sin: trig::UnitNegRange,
+    sin: trig::UnitNegRange<T>,
     /// The cosine of the angle.
-    cos: trig::UnitNegRange,
+    cos: trig::UnitNegRange<T>,
 }
 
 /// A default angle: zero degrees or radians.
-impl Default for Angle {
+impl<T: Float> Default for Angle<T> {
     /// Implementation of Default for Angle returns Angle(0.0, 1.0),
     /// i.e. the Angle corresponding to zero degrees or radians.
     /// # Examples
     /// ```
     /// use angle_sc::Angle;
     ///
-    /// let zero = Angle::default();
+    /// let zero = Angle::<f64>::default();
     /// assert_eq!(0.0, zero.sin().0);
     /// assert_eq!(1.0, zero.cos().0);
     /// ```
     fn default() -> Self {
         Self {
-            sin: trig::UnitNegRange(0.0),
-            cos: trig::UnitNegRange(1.0),
+            sin: trig::UnitNegRange(T::zero()),
+            cos: trig::UnitNegRange(T::one()),
         }
     }
 }
 
-impl Validate for Angle {
+impl<T: Float> Validate for Angle<T> {
     /// Test whether an `Angle` is valid, i.e. both sin and cos are valid
     /// `UnitNegRange`s and the length of their hypotenuse is approximately 1.0.
     fn is_valid(&self) -> bool {
         self.sin.is_valid()
             && self.cos.is_valid()
-            && is_within_tolerance(1.0, libm::hypot(self.sin.0, self.cos.0), f64::EPSILON)
+            && is_within_tolerance(
+                T::one(),
+                (self.sin.0.powi(2) + self.cos.0.powi(2)).sqrt(),
+                T::epsilon(),
+            )
     }
 }
 
-impl Angle {
+impl<T: Float> Angle<T> {
     /// Construct an Angle from sin and cos values.
     #[must_use]
-    pub const fn new(sin: trig::UnitNegRange, cos: trig::UnitNegRange) -> Self {
+    pub const fn new(sin: trig::UnitNegRange<T>, cos: trig::UnitNegRange<T>) -> Self {
         Self { sin, cos }
     }
 
     /// Construct an Angle from y and x values.
     /// Normalizes the values.
     #[must_use]
-    pub fn from_y_x(y: f64, x: f64) -> Self {
-        let length = libm::hypot(y, x);
+    pub fn from_y_x(y: T, x: T) -> Self {
+        // let length = libm::hypot(y, x);
+        let length = (y * y + x * x).sqrt();
 
-        if is_small(length, f64::EPSILON) {
+        if is_small(length, T::epsilon()) {
             Self::default()
         } else {
             Self::new(
@@ -442,13 +459,13 @@ impl Angle {
 
     /// The sine of the Angle.
     #[must_use]
-    pub const fn sin(self) -> trig::UnitNegRange {
+    pub const fn sin(self) -> trig::UnitNegRange<T> {
         self.sin
     }
 
     /// The cosine of the Angle.
     #[must_use]
-    pub const fn cos(self) -> trig::UnitNegRange {
+    pub const fn cos(self) -> trig::UnitNegRange<T> {
         self.cos
     }
 
@@ -456,7 +473,7 @@ impl Angle {
     ///
     /// returns the tangent or `None` if `self.cos < SQ_EPSILON`
     #[must_use]
-    pub fn tan(self) -> Option<f64> {
+    pub fn tan(self) -> Option<T> {
         trig::tan(self.sin, self.cos)
     }
 
@@ -464,7 +481,7 @@ impl Angle {
     ///
     /// returns the cosecant or `None` if `self.sin < SQ_EPSILON`
     #[must_use]
-    pub fn csc(self) -> Option<f64> {
+    pub fn csc(self) -> Option<T> {
         trig::csc(self.sin)
     }
 
@@ -472,7 +489,7 @@ impl Angle {
     ///
     /// returns the secant or `None` if `self.cos < SQ_EPSILON`
     #[must_use]
-    pub fn sec(self) -> Option<f64> {
+    pub fn sec(self) -> Option<T> {
         trig::sec(self.cos)
     }
 
@@ -480,7 +497,7 @@ impl Angle {
     ///
     /// returns the cotangent or `None` if `self.sin < SQ_EPSILON`
     #[must_use]
-    pub fn cot(self) -> Option<f64> {
+    pub fn cot(self) -> Option<T> {
         trig::cot(self.sin, self.cos)
     }
 
@@ -494,7 +511,7 @@ impl Angle {
     /// assert_eq!(Degrees(45.0), Degrees::from(result_45));
     /// ```
     #[must_use]
-    pub const fn abs(self) -> Self {
+    pub fn abs(self) -> Self {
         Self {
             sin: self.sin.abs(),
             cos: self.cos,
@@ -581,14 +598,14 @@ impl Angle {
     /// let result_60 = angle_30.double();
     ///
     /// // Note: multiplication is not precise...
-    /// // assert_eq!(Degrees(60.0), Degrees::from(result_60));
-    /// let delta_angle = (60.0 - Degrees::from(result_60).0).abs();
+    /// // assert_eq!(Degrees(60.0), Degrees::<f64>::from(result_60));
+    /// let delta_angle = (60.0 - Degrees::<f64>::from(result_60).0).abs();
     /// assert!(delta_angle <= 32.0 * f64::EPSILON);
     /// ```
     #[must_use]
     pub fn double(self) -> Self {
         Self {
-            sin: trig::UnitNegRange::clamp(2.0 * self.sin.0 * self.cos.0),
+            sin: trig::UnitNegRange::clamp((self.sin.0 + self.sin.0) * self.cos.0),
             cos: trig::sq_a_minus_sq_b(self.cos, self.sin),
         }
     }
@@ -607,13 +624,13 @@ impl Angle {
     #[must_use]
     pub fn half(self) -> Self {
         Self {
-            sin: trig::UnitNegRange(libm::sqrt(trig::sq_sine_half(self.cos)).copysign(self.sin.0)),
-            cos: trig::UnitNegRange(libm::sqrt(trig::sq_cosine_half(self.cos))),
+            sin: trig::UnitNegRange((trig::sq_sine_half(self.cos).sqrt()).copysign(self.sin.0)),
+            cos: trig::UnitNegRange(trig::sq_cosine_half(self.cos).sqrt()),
         }
     }
 }
 
-impl Neg for Angle {
+impl<T: Float> Neg for Angle<T> {
     type Output = Self;
 
     /// An implementation of Neg for Angle, i.e. -angle.
@@ -634,7 +651,7 @@ impl Neg for Angle {
     }
 }
 
-impl Add for Angle {
+impl<T: Float> Add for Angle<T> {
     type Output = Self;
 
     /// Add two Angles, i.e. a + b
@@ -657,13 +674,13 @@ impl Add for Angle {
     }
 }
 
-impl AddAssign for Angle {
+impl<T: Float> AddAssign for Angle<T> {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
-impl Sub for Angle {
+impl<T: Float> Sub for Angle<T> {
     type Output = Self;
 
     /// Subtract two Angles, i.e. a - b
@@ -687,13 +704,13 @@ impl Sub for Angle {
     }
 }
 
-impl SubAssign for Angle {
+impl<T: Float> SubAssign for Angle<T> {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
-impl PartialOrd for Angle {
+impl<T: Float> PartialOrd for Angle<T> {
     /// Compare two Angles, i.e. a < b.
     /// It compares whether an `Angle` is clockwise of the other `Angle` on the
     /// unit circle.
@@ -707,11 +724,15 @@ impl PartialOrd for Angle {
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let delta = *other - *self;
-        trig::UnitNegRange(0.0).partial_cmp(&delta.sin)
+        trig::UnitNegRange(T::zero()).partial_cmp(&delta.sin)
     }
 }
 
-impl From<Degrees> for Angle {
+impl<T> From<Degrees<T>> for Angle<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     /// Construct an `Angle` from an angle in Degrees.
     ///
     /// Examples:
@@ -723,13 +744,17 @@ impl From<Degrees> for Angle {
     /// assert_eq!(0.5, angle.cos().0);
     /// assert_eq!(60.0, Degrees::from(angle).0);
     /// ```
-    fn from(a: Degrees) -> Self {
+    fn from(a: Degrees<T>) -> Self {
         let (sin, cos) = trig::sincosd(a);
         Self { sin, cos }
     }
 }
 
-impl From<(Degrees, Degrees)> for Angle {
+impl<T> From<(Degrees<T>, Degrees<T>)> for Angle<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     /// Construct an `Angle` from the difference of a pair angles in Degrees:
     /// a - b
     ///
@@ -743,13 +768,17 @@ impl From<(Degrees, Degrees)> for Angle {
     /// assert_eq!(trig::COS_30_DEGREES, angle.cos().0);
     /// assert_eq!(30.0, Degrees::from(angle).0);
     /// ```
-    fn from(params: (Degrees, Degrees)) -> Self {
+    fn from(params: (Degrees<T>, Degrees<T>)) -> Self {
         let (sin, cos) = trig::sincosd_diff(params.0, params.1);
         Self { sin, cos }
     }
 }
 
-impl From<Radians> for Angle {
+impl<T> From<Radians<T>> for Angle<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     /// Construct an `Angle` from an angle in Radians.
     ///
     /// Examples:
@@ -761,13 +790,17 @@ impl From<Radians> for Angle {
     /// assert_eq!(trig::COS_30_DEGREES, angle.cos().0);
     /// assert_eq!(-core::f64::consts::FRAC_PI_6, Radians::from(angle).0);
     /// ```
-    fn from(a: Radians) -> Self {
+    fn from(a: Radians<T>) -> Self {
         let (sin, cos) = trig::sincos(a);
         Self { sin, cos }
     }
 }
 
-impl From<(Radians, Radians)> for Angle {
+impl<T> From<(Radians<T>, Radians<T>)> for Angle<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     /// Construct an Angle from the difference of a pair angles in Radians:
     /// a - b
     ///
@@ -782,27 +815,39 @@ impl From<(Radians, Radians)> for Angle {
     /// ));
     /// assert_eq!(-core::f64::consts::FRAC_PI_3, Radians::from(angle).0);
     /// ```
-    fn from(params: (Radians, Radians)) -> Self {
+    fn from(params: (Radians<T>, Radians<T>)) -> Self {
         let (sin, cos) = trig::sincos_diff(params.0, params.1);
         Self { sin, cos }
     }
 }
 
-impl From<Angle> for Radians {
+impl<T> From<Angle<T>> for Radians<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     /// Convert an Angle to Radians.
-    fn from(a: Angle) -> Self {
+    fn from(a: Angle<T>) -> Self {
         trig::arctan2(a.sin, a.cos)
     }
 }
 
-impl From<Angle> for Degrees {
+impl<T> From<Angle<T>> for Degrees<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     /// Convert an Angle to Degrees.
-    fn from(a: Angle) -> Self {
+    fn from(a: Angle<T>) -> Self {
         trig::arctan2d(a.sin, a.cos)
     }
 }
 
-impl Serialize for Angle {
+impl<T> Serialize for Angle<T>
+where
+    T: Float + FloatConst + Serialize,
+    f64: From<T>,
+{
     /// Serialize an Angle to an value in Degrees.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -812,13 +857,17 @@ impl Serialize for Angle {
     }
 }
 
-impl<'de> Deserialize<'de> for Angle {
+impl<'de, T> Deserialize<'de> for Angle<T>
+where
+    T: Float + FloatConst + Deserialize<'de>,
+    f64: From<T>,
+{
     /// Deserialize an value in Degrees to an Angle.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        Ok(Self::from(Degrees::deserialize(deserializer)?))
+        Ok(Self::from(Degrees::<T>::deserialize(deserializer)?))
     }
 }
 
@@ -933,11 +982,11 @@ mod tests {
         assert_eq!(Degrees(60.0), d_m120.opposite());
 
         let serialized = serde_json::to_string(&one).unwrap();
-        let deserialized: Degrees = serde_json::from_str(&serialized).unwrap();
+        let deserialized: Degrees<f64> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(one, deserialized);
 
         let bad_text = "junk";
-        let _serde_error = serde_json::from_str::<Degrees>(&bad_text).unwrap_err();
+        let _serde_error = serde_json::from_str::<Degrees<f64>>(&bad_text).unwrap_err();
 
         print!("Degrees: {:?}", one);
     }
@@ -988,7 +1037,7 @@ mod tests {
 
     #[test]
     fn test_angle_traits() {
-        let zero = Angle::default();
+        let zero = Angle::<f64>::default();
         assert_eq!(0.0, zero.sin().0);
         assert_eq!(1.0, zero.cos().0);
         assert_eq!(0.0, zero.tan().unwrap());
@@ -1024,14 +1073,15 @@ mod tests {
         assert!(angle_m45 < zero);
 
         let serialized = serde_json::to_string(&zero).unwrap();
-        let deserialized: Angle = serde_json::from_str(&serialized).unwrap();
+        let deserialized: Angle<f64> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(zero, deserialized);
 
         let bad_text = "junk";
-        let _serde_error = serde_json::from_str::<Angle>(&bad_text).unwrap_err();
+        let _serde_error = serde_json::from_str::<Angle<f64>>(&bad_text).unwrap_err();
 
         print!("Angle: {:?}", angle_m45);
     }
+
     #[test]
     fn test_angle_conversion() {
         let zero = Angle::default();
@@ -1040,11 +1090,11 @@ mod tests {
         assert!(too_small.is_valid());
         assert_eq!(zero, too_small);
 
-        let small = Angle::from(-trig::MAX_COS_ANGLE_IS_ONE);
+        let small = Angle::from(Radians(-trig::MAX_COS_ANGLE_IS_ONE));
         assert!(small.is_valid());
-        assert_eq!(-trig::MAX_COS_ANGLE_IS_ONE.0, small.sin().0);
+        assert_eq!(-trig::MAX_COS_ANGLE_IS_ONE, small.sin().0);
         assert_eq!(1.0, small.cos().0);
-        assert_eq!(-trig::MAX_COS_ANGLE_IS_ONE.0, Radians::from(small).0);
+        assert_eq!(-trig::MAX_COS_ANGLE_IS_ONE, Radians::from(small).0);
 
         let angle_30 = Angle::from((
             Radians(core::f64::consts::FRAC_PI_3),

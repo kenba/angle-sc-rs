@@ -60,10 +60,10 @@
 
 #![allow(clippy::float_cmp, clippy::suboptimal_flops)]
 
+use crate::vector2d;
 use crate::{Degrees, Radians, Validate, two_sum};
-#[allow(unused_imports)]
-use crate::{simd, vector2d};
 use core::{cmp::Ordering, ops::Neg};
+use num_traits::{Float, float::FloatConst};
 
 /// ε * ε, a very small number.
 pub const SQ_EPSILON: f64 = f64::EPSILON * f64::EPSILON;
@@ -76,17 +76,21 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 /// The cosine of 30 degrees: √3/2
 pub const COS_30_DEGREES: f64 = SQRT_3 / 2.0;
 /// The maximum angle in Radians where: `sin(value) == value`
-pub const MAX_LINEAR_SIN_ANGLE: Radians = Radians(9.67e7 * f64::EPSILON);
+pub const MAX_LINEAR_SIN_ANGLE: f64 = 9.67e7 * f64::EPSILON;
 /// The maximum angle in Radians where: `swap_sin_cos(sin(value)) == 1.0`
-pub const MAX_COS_ANGLE_IS_ONE: Radians = Radians(3.35e7 * f64::EPSILON);
+pub const MAX_COS_ANGLE_IS_ONE: f64 = 3.35e7 * f64::EPSILON;
+
+pub const THIRTY: f64 = 30.0;
+pub const FORTY_FIVE: f64 = 45.0;
 
 /// Convert an angle in `Degrees` to `Radians`.
 ///
 /// Corrects ±30° to ±π/6.
 #[must_use]
-fn to_radians(angle: Degrees) -> Radians {
-    if angle.0.abs() == 30.0 {
-        Radians(core::f64::consts::FRAC_PI_6.copysign(angle.0))
+fn to_radians<T: Float + FloatConst>(angle: Degrees<T>) -> Radians<T> {
+    let thirty = T::from(THIRTY).expect("Could not convert constant to Float");
+    if angle.0.abs() == thirty {
+        Radians(T::FRAC_PI_6().copysign(angle.0))
     } else {
         Radians(angle.0.to_radians())
     }
@@ -94,17 +98,17 @@ fn to_radians(angle: Degrees) -> Radians {
 
 /// The `UnitNegRange` newtype an f64.
 /// A valid `UnitNegRange` value lies between -1.0 and +1.0 inclusive.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 #[repr(transparent)]
-pub struct UnitNegRange(pub f64);
+pub struct UnitNegRange<T: Float>(pub T);
 
-impl Default for UnitNegRange {
+impl<T: Float> Default for UnitNegRange<T> {
     fn default() -> Self {
-        Self(0.0)
+        Self(T::zero())
     }
 }
 
-impl UnitNegRange {
+impl<T: Float> UnitNegRange<T> {
     /// Clamp value into the valid range: -1.0 to +1.0 inclusive.
     ///
     /// # Examples
@@ -118,18 +122,18 @@ impl UnitNegRange {
     /// assert_eq!(1.0, UnitNegRange::clamp(1.0 + f64::EPSILON).0);
     /// ```
     #[must_use]
-    pub const fn clamp(value: f64) -> Self {
-        Self(value.clamp(-1.0, 1.0))
+    pub fn clamp(value: T) -> Self {
+        Self(value.clamp(-T::one(), T::one()))
     }
 
     /// The absolute value of the `UnitNegRange`.
     #[must_use]
-    pub const fn abs(self) -> Self {
+    pub fn abs(self) -> Self {
         Self(self.0.abs())
     }
 }
 
-impl Validate for UnitNegRange {
+impl<T: Float> Validate for UnitNegRange<T> {
     /// Test whether a `UnitNegRange` is valid.
     ///
     /// I.e. whether it lies in the range: -1.0 <= value <= 1.0
@@ -144,18 +148,18 @@ impl Validate for UnitNegRange {
     /// assert!(!(UnitNegRange(1.0 + f64::EPSILON).is_valid()));
     /// ```
     fn is_valid(&self) -> bool {
-        (-1.0..=1.0).contains(&self.0)
+        (-T::one()..=T::one()).contains(&self.0)
     }
 }
 
-impl Neg for UnitNegRange {
+impl<T: Float> Neg for UnitNegRange<T> {
     type Output = Self;
 
     /// An implementation of Neg for `UnitNegRange`.
     ///
     /// Negates the value.
     fn neg(self) -> Self {
-        Self(0.0 - self.0)
+        Self(T::zero() - self.0)
     }
 }
 
@@ -166,8 +170,8 @@ impl Neg for UnitNegRange {
 ///
 /// returns (a - b) * (a + b)
 #[must_use]
-pub fn sq_a_minus_sq_b(a: UnitNegRange, b: UnitNegRange) -> UnitNegRange {
-    UnitNegRange((a.0 - b.0) * (a.0 + b.0))
+pub fn sq_a_minus_sq_b<T: Float>(a: UnitNegRange<T>, b: UnitNegRange<T>) -> UnitNegRange<T> {
+    UnitNegRange::<T>((a.0 - b.0) * (a.0 + b.0))
 }
 
 /// Calculate 1 - a * a.
@@ -177,8 +181,8 @@ pub fn sq_a_minus_sq_b(a: UnitNegRange, b: UnitNegRange) -> UnitNegRange {
 ///
 /// returns (1 - a) * (1 + a)
 #[must_use]
-pub fn one_minus_sq_value(a: UnitNegRange) -> UnitNegRange {
-    sq_a_minus_sq_b(UnitNegRange(1.0), a)
+pub fn one_minus_sq_value<T: Float>(a: UnitNegRange<T>) -> UnitNegRange<T> {
+    sq_a_minus_sq_b(UnitNegRange(T::one()), a)
 }
 
 /// Swap the sine into the cosine of an angle and vice versa.
@@ -196,8 +200,8 @@ pub fn one_minus_sq_value(a: UnitNegRange) -> UnitNegRange {
 /// assert_eq!(UnitNegRange(1.0), swap_sin_cos(UnitNegRange(0.0)));
 /// ```
 #[must_use]
-pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
-    UnitNegRange(libm::sqrt(one_minus_sq_value(a).0))
+pub fn swap_sin_cos<T: Float>(a: UnitNegRange<T>) -> UnitNegRange<T> {
+    UnitNegRange(one_minus_sq_value(a).0.sqrt())
 }
 
 /// Calculate the cosine of an angle from it's sine and the sign of the cosine.
@@ -213,30 +217,36 @@ pub fn swap_sin_cos(a: UnitNegRange) -> UnitNegRange {
 ///
 /// assert_eq!(COS_30_DEGREES, cosine_from_sine(UnitNegRange(0.5), 1.0).0);
 /// ```
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
-pub fn cosine_from_sine(a: UnitNegRange, sign: f64) -> UnitNegRange {
-    if a.0.abs() > MAX_COS_ANGLE_IS_ONE.0 {
+pub fn cosine_from_sine<T: Float>(a: UnitNegRange<T>, sign: T) -> UnitNegRange<T> {
+    let max_cos_angle_is_one =
+        T::from(MAX_COS_ANGLE_IS_ONE).expect("Could not convert constant to Float");
+    if a.0.abs() > max_cos_angle_is_one {
         let b = swap_sin_cos(a);
-        if b.0 > 0.0 {
+        if b.0 > T::zero() {
             UnitNegRange(b.0.copysign(sign))
         } else {
             b
         }
     } else {
-        UnitNegRange(1.0_f64.copysign(sign))
+        UnitNegRange(T::one().copysign(sign))
     }
 }
 
 /// Calculate the sine of an angle in `Radians`.
 ///
 /// Corrects sin ±π/4 to ±1/√2.
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
-pub fn sine(angle: Radians) -> UnitNegRange {
+pub fn sine<T: Float + FloatConst>(angle: Radians<T>) -> UnitNegRange<T> {
+    let max_linear_sin_angle =
+        T::from(MAX_LINEAR_SIN_ANGLE).expect("Could not convert constant to Float");
     let angle_abs = angle.0.abs();
-    if angle_abs == core::f64::consts::FRAC_PI_4 {
-        UnitNegRange(core::f64::consts::FRAC_1_SQRT_2.copysign(angle.0))
-    } else if angle_abs > MAX_LINEAR_SIN_ANGLE.0 {
-        UnitNegRange(libm::sin(angle.0))
+    if angle_abs == T::FRAC_PI_4() {
+        UnitNegRange(T::FRAC_1_SQRT_2().copysign(angle.0))
+    } else if angle_abs > max_linear_sin_angle {
+        UnitNegRange(angle.0.sin())
     } else {
         UnitNegRange(angle.0)
     }
@@ -246,14 +256,12 @@ pub fn sine(angle: Radians) -> UnitNegRange {
 ///
 /// Corrects cos π/4 to 1/√2.
 #[must_use]
-pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
+pub fn cosine<T: Float + FloatConst>(angle: Radians<T>, sin: UnitNegRange<T>) -> UnitNegRange<T> {
     let angle_abs = angle.0.abs();
-    if angle_abs == core::f64::consts::FRAC_PI_4 {
-        UnitNegRange(
-            core::f64::consts::FRAC_1_SQRT_2.copysign(core::f64::consts::FRAC_PI_2 - angle_abs),
-        )
+    if angle_abs == T::FRAC_PI_4() {
+        UnitNegRange(T::FRAC_1_SQRT_2().copysign(T::FRAC_PI_2() - angle_abs))
     } else {
-        cosine_from_sine(sin, core::f64::consts::FRAC_PI_2 - angle_abs)
+        cosine_from_sine(sin, T::FRAC_PI_2() - angle_abs)
     }
 }
 
@@ -264,11 +272,11 @@ pub fn cosine(angle: Radians, sin: UnitNegRange) -> UnitNegRange {
 /// - 2: opposite quadrant
 /// - 3: rotate 90° counter-clockwise
 #[must_use]
-fn assign_sin_cos_to_quadrant(
-    sin: UnitNegRange,
-    cos: UnitNegRange,
+fn assign_sin_cos_to_quadrant<T: Float>(
+    sin: UnitNegRange<T>,
+    cos: UnitNegRange<T>,
     q: i32,
-) -> (UnitNegRange, UnitNegRange) {
+) -> (UnitNegRange<T>, UnitNegRange<T>) {
     match q & 3 {
         1 => (cos, -sin),  // quarter_turn_cw
         2 => (-sin, -cos), // opposite
@@ -285,12 +293,22 @@ fn assign_sin_cos_to_quadrant(
 /// * `radians` the angle in `Radians`
 ///
 /// returns sine and cosine of the angle as `UnitNegRange`s.
+///
+/// # Panics
+///
+/// Panics if it cannot convert value to Float.
 #[must_use]
-pub fn sincos(radians: Radians) -> (UnitNegRange, UnitNegRange) {
-    let rq: (f64, i32) = libm::remquo(radians.0, core::f64::consts::FRAC_PI_2);
+pub fn sincos<T>(radians: Radians<T>) -> (UnitNegRange<T>, UnitNegRange<T>)
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
+    let radians = f64::from(radians.0);
+    let rq = libm::remquo(radians, core::f64::consts::FRAC_PI_2);
 
     // radians_q is radians in range `-FRAC_PI_4..=FRAC_PI_4`
-    let radians_q = Radians(rq.0);
+    let radians_q = T::from(rq.0).expect("Could not convert value to Float");
+    let radians_q = Radians(radians_q);
     let sin = sine(radians_q);
     assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
 }
@@ -304,13 +322,23 @@ pub fn sincos(radians: Radians) -> (UnitNegRange, UnitNegRange) {
 /// * `a`, `b` the angles in `Radians`
 ///
 /// returns sine and cosine of a - b as `UnitNegRange`s.
+///
+/// # Panics
+///
+/// Panics if it cannot convert value to Float.
 #[must_use]
-pub fn sincos_diff(a: Radians, b: Radians) -> (UnitNegRange, UnitNegRange) {
+pub fn sincos_diff<T>(a: Radians<T>, b: Radians<T>) -> (UnitNegRange<T>, UnitNegRange<T>)
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     let delta = two_sum(a.0, -b.0);
-    let rq: (f64, i32) = libm::remquo(delta.0, core::f64::consts::FRAC_PI_2);
+    let radians = f64::from(delta.0);
+    let rq = libm::remquo(radians, core::f64::consts::FRAC_PI_2);
 
     // radians_q is radians in range `-FRAC_PI_4..=FRAC_PI_4`
-    let radians_q = Radians(rq.0 + delta.1);
+    let radians_q = T::from(rq.0).expect("Could not convert value to Float");
+    let radians_q = Radians(radians_q + delta.1);
     let sin = sine(radians_q);
     assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
 }
@@ -324,21 +352,35 @@ pub fn sincos_diff(a: Radians, b: Radians) -> (UnitNegRange, UnitNegRange) {
 /// # Panics
 ///
 /// Panics if `sin` or `cos` are `NaN`.
+///
+/// # Panics
+///
+/// Panics if it cannot convert value to Float.
 #[must_use]
-pub fn arctan2(sin: UnitNegRange, cos: UnitNegRange) -> Radians {
+pub fn arctan2<T>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Radians<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     let sin_abs = sin.0.abs();
     let cos_abs = cos.0.abs();
 
     // calculate radians in the range 0.0..=PI/2
     let radians_pi_2 = match sin_abs.partial_cmp(&cos_abs).expect("sin or cos is NaN") {
-        Ordering::Equal => core::f64::consts::FRAC_PI_4,
-        Ordering::Less => libm::atan2(sin_abs, cos_abs),
-        Ordering::Greater => core::f64::consts::FRAC_PI_2 - libm::atan2(cos_abs, sin_abs),
+        Ordering::Equal => T::FRAC_PI_4(),
+        Ordering::Less => {
+            let value = libm::atan2(f64::from(sin_abs), f64::from(cos_abs));
+            T::from(value).expect("Could not convert value to Float")
+        }
+        Ordering::Greater => {
+            let value = libm::atan2(f64::from(cos_abs), f64::from(sin_abs));
+            T::FRAC_PI_2() - T::from(value).expect("Could not convert value to Float")
+        }
     };
 
     // calculate radians in the range 0.0..=PI
-    let radians_pi = if cos.0 < 0.0 {
-        core::f64::consts::PI - radians_pi_2
+    let radians_pi = if cos.0 < T::zero() {
+        T::PI() - radians_pi_2
     } else {
         radians_pi_2
     };
@@ -355,12 +397,21 @@ pub fn arctan2(sin: UnitNegRange, cos: UnitNegRange) -> Radians {
 /// * `degrees` the angle in `Degrees`
 ///
 /// returns sine and cosine of the angle as `UnitNegRange`s.
+///
+/// # Panics
+///
+/// Panics if it cannot convert value to Float.
 #[must_use]
-pub fn sincosd(degrees: Degrees) -> (UnitNegRange, UnitNegRange) {
-    let rq: (f64, i32) = libm::remquo(degrees.0, 90.0);
+pub fn sincosd<T>(degrees: Degrees<T>) -> (UnitNegRange<T>, UnitNegRange<T>)
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
+    let rq: (f64, i32) = libm::remquo(f64::from(degrees.0), 90.0);
 
     // radians_q is radians in range `-π/4 <= radians <= π/4`
-    let radians_q = to_radians(Degrees(rq.0));
+    let radians_q = T::from(rq.0).expect("Could not convert value to Float");
+    let radians_q = to_radians(Degrees(radians_q));
     let sin = sine(radians_q);
     assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
 }
@@ -374,13 +425,22 @@ pub fn sincosd(degrees: Degrees) -> (UnitNegRange, UnitNegRange) {
 /// * `a`, `b` the angles in `Degrees`
 ///
 /// returns sine and cosine of a - b as `UnitNegRange`s.
+///
+/// # Panics
+///
+/// Panics if it cannot convert value to Float.
 #[must_use]
-pub fn sincosd_diff(a: Degrees, b: Degrees) -> (UnitNegRange, UnitNegRange) {
+pub fn sincosd_diff<T>(a: Degrees<T>, b: Degrees<T>) -> (UnitNegRange<T>, UnitNegRange<T>)
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     let delta = two_sum(a.0, -b.0);
-    let rq: (f64, i32) = libm::remquo(delta.0, 90.0);
+    let rq: (f64, i32) = libm::remquo(f64::from(delta.0), 90.0);
 
     // radians_q is radians in range `-π/4 <= radians <= π/4`
-    let radians_q = to_radians(Degrees(rq.0 + delta.1));
+    let radians_q = T::from(rq.0).expect("Could not convert value to Float");
+    let radians_q = to_radians(Degrees(radians_q + delta.1));
     let sin = sine(radians_q);
     assign_sin_cos_to_quadrant(sin, cosine(radians_q, sin), rq.1)
 }
@@ -389,11 +449,18 @@ pub fn sincosd_diff(a: Degrees, b: Degrees) -> (UnitNegRange, UnitNegRange) {
 ///
 /// Converts sin of 0.5 to 30°.
 #[must_use]
-fn arctan2_degrees(sin_abs: f64, cos_abs: f64) -> f64 {
-    if sin_abs == 0.5 {
-        30.0
+fn arctan2_degrees<T>(sin_abs: T, cos_abs: T) -> T
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
+    let half = T::one() / (T::one() + T::one());
+    let thirty = T::from(THIRTY).expect("Could not convert constant to Float");
+    if sin_abs == half {
+        thirty
     } else {
-        libm::atan2(sin_abs, cos_abs).to_degrees()
+        let value = libm::atan2(f64::from(sin_abs), f64::from(cos_abs)).to_degrees();
+        T::from(value).expect("Could not convert value to Float")
     }
 }
 
@@ -406,20 +473,28 @@ fn arctan2_degrees(sin_abs: f64, cos_abs: f64) -> f64 {
 ///
 /// Panics if `sin` or `cos` are `NaN`.
 #[must_use]
-pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
+pub fn arctan2d<T>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Degrees<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
+    let forty_five = T::from(FORTY_FIVE).expect("Could not convert constant to Float");
+    let ninety = forty_five + forty_five;
+    let one_eighty = ninety + ninety;
+
     let sin_abs = sin.0.abs();
     let cos_abs = cos.0.abs();
 
     // calculate degrees in the range 0.0..=90.0
     let degrees_90 = match sin_abs.partial_cmp(&cos_abs).expect("sin or cos is NaN") {
-        Ordering::Equal => 45.0,
+        Ordering::Equal => forty_five,
         Ordering::Less => arctan2_degrees(sin_abs, cos_abs),
-        Ordering::Greater => 90.0 - arctan2_degrees(cos_abs, sin_abs),
+        Ordering::Greater => ninety - arctan2_degrees(cos_abs, sin_abs),
     };
 
     // calculate degrees in the range 0° <= degrees <= 180°
-    let degrees_180 = if cos.0 < 0.0 {
-        180.0 - degrees_90
+    let degrees_180 = if cos.0 < T::zero() {
+        one_eighty - degrees_90
     } else {
         degrees_90
     };
@@ -434,9 +509,10 @@ pub fn arctan2d(sin: UnitNegRange, cos: UnitNegRange) -> Degrees {
 ///
 /// returns the cosecant or `None` if `sin < SQ_EPSILON`
 #[must_use]
-pub fn csc(sin: UnitNegRange) -> Option<f64> {
-    if sin.0.abs() >= SQ_EPSILON {
-        Some(1.0 / sin.0)
+pub fn csc<T: Float>(sin: UnitNegRange<T>) -> Option<T> {
+    let sq_epsilon = T::epsilon() * T::epsilon();
+    if sin.0.abs() >= sq_epsilon {
+        Some(T::one() / sin.0)
     } else {
         None
     }
@@ -448,9 +524,10 @@ pub fn csc(sin: UnitNegRange) -> Option<f64> {
 ///
 /// returns the secant or `None` if `cos < SQ_EPSILON`
 #[must_use]
-pub fn sec(cos: UnitNegRange) -> Option<f64> {
-    if cos.0.abs() >= SQ_EPSILON {
-        Some(1.0 / cos.0)
+pub fn sec<T: Float>(cos: UnitNegRange<T>) -> Option<T> {
+    let sq_epsilon = T::epsilon() * T::epsilon();
+    if cos.0.abs() >= sq_epsilon {
+        Some(T::one() / cos.0)
     } else {
         None
     }
@@ -462,7 +539,7 @@ pub fn sec(cos: UnitNegRange) -> Option<f64> {
 ///
 /// returns the tangent or `None` if `cos < SQ_EPSILON`
 #[must_use]
-pub fn tan(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
+pub fn tan<T: Float>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Option<T> {
     sec(cos).map(|secant| sin.0 * secant)
 }
 
@@ -472,7 +549,7 @@ pub fn tan(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
 ///
 /// returns the cotangent or `None` if `sin < SQ_EPSILON`
 #[must_use]
-pub fn cot(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
+pub fn cot<T: Float>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Option<T> {
     csc(sin).map(|cosecant| cos.0 * cosecant)
 }
 
@@ -485,17 +562,13 @@ pub fn cot(sin: UnitNegRange, cos: UnitNegRange) -> Option<f64> {
 ///
 /// return sin(a - b)
 #[must_use]
-pub fn sine_diff(
-    sin_a: UnitNegRange,
-    cos_a: UnitNegRange,
-    sin_b: UnitNegRange,
-    cos_b: UnitNegRange,
-) -> UnitNegRange {
-    if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
-        UnitNegRange::clamp(unsafe { simd::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0) })
-    } else {
-        UnitNegRange::clamp(vector2d::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
-    }
+pub fn sine_diff<T: Float>(
+    sin_a: UnitNegRange<T>,
+    cos_a: UnitNegRange<T>,
+    sin_b: UnitNegRange<T>,
+    cos_b: UnitNegRange<T>,
+) -> UnitNegRange<T> {
+    UnitNegRange::clamp(vector2d::perp_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
 /// Calculate the sine of the sum of two angles: a + b.
@@ -507,12 +580,12 @@ pub fn sine_diff(
 ///
 /// return sin(a + b)
 #[must_use]
-pub fn sine_sum(
-    sin_a: UnitNegRange,
-    cos_a: UnitNegRange,
-    sin_b: UnitNegRange,
-    cos_b: UnitNegRange,
-) -> UnitNegRange {
+pub fn sine_sum<T: Float>(
+    sin_a: UnitNegRange<T>,
+    cos_a: UnitNegRange<T>,
+    sin_b: UnitNegRange<T>,
+    cos_b: UnitNegRange<T>,
+) -> UnitNegRange<T> {
     sine_diff(sin_a, cos_a, -sin_b, cos_b)
 }
 
@@ -525,17 +598,13 @@ pub fn sine_sum(
 ///
 /// return cos(a - b)
 #[must_use]
-pub fn cosine_diff(
-    sin_a: UnitNegRange,
-    cos_a: UnitNegRange,
-    sin_b: UnitNegRange,
-    cos_b: UnitNegRange,
-) -> UnitNegRange {
-    if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
-        UnitNegRange::clamp(unsafe { simd::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0) })
-    } else {
-        UnitNegRange::clamp(vector2d::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
-    }
+pub fn cosine_diff<T: Float>(
+    sin_a: UnitNegRange<T>,
+    cos_a: UnitNegRange<T>,
+    sin_b: UnitNegRange<T>,
+    cos_b: UnitNegRange<T>,
+) -> UnitNegRange<T> {
+    UnitNegRange::clamp(vector2d::dot_product(sin_a.0, cos_a.0, sin_b.0, cos_b.0))
 }
 
 /// Calculate the cosine of the sum of two angles: a + b.
@@ -547,12 +616,12 @@ pub fn cosine_diff(
 ///
 /// return cos(a + b)
 #[must_use]
-pub fn cosine_sum(
-    sin_a: UnitNegRange,
-    cos_a: UnitNegRange,
-    sin_b: UnitNegRange,
-    cos_b: UnitNegRange,
-) -> UnitNegRange {
+pub fn cosine_sum<T: Float>(
+    sin_a: UnitNegRange<T>,
+    cos_a: UnitNegRange<T>,
+    sin_b: UnitNegRange<T>,
+    cos_b: UnitNegRange<T>,
+) -> UnitNegRange<T> {
     cosine_diff(sin_a, cos_a, -sin_b, cos_b)
 }
 
@@ -560,16 +629,18 @@ pub fn cosine_sum(
 ///
 /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
 #[must_use]
-pub fn sq_sine_half(cos: UnitNegRange) -> f64 {
-    (1.0 - cos.0) * 0.5
+pub fn sq_sine_half<T: Float>(cos: UnitNegRange<T>) -> T {
+    let half = T::one() / (T::one() + T::one());
+    (T::one() - cos.0) * half
 }
 
 /// Square of the cosine of half the Angle.
 ///
 /// See: [Half-angle formulae](https://en.wikipedia.org/wiki/List_of_trigonometric_identities#Half-angle_formulae)
 #[must_use]
-pub fn sq_cosine_half(cos: UnitNegRange) -> f64 {
-    (1.0 + cos.0) * 0.5
+pub fn sq_cosine_half<T: Float>(cos: UnitNegRange<T>) -> T {
+    let half = T::one() / (T::one() + T::one());
+    (T::one() + cos.0) * half
 }
 
 /// Calculates the length of the other side in a right angled triangle,
@@ -582,13 +653,13 @@ pub fn sq_cosine_half(cos: UnitNegRange) -> f64 {
 /// returns the length of the other side.
 /// zero if length >= hypotenuse or the hypotenuse if length <= 0.
 #[must_use]
-pub fn calculate_adjacent_length(length: f64, hypotenuse: f64) -> f64 {
-    if length <= 0.0 {
+pub fn calculate_adjacent_length<T: Float>(length: T, hypotenuse: T) -> T {
+    if length <= T::zero() {
         hypotenuse
     } else if length >= hypotenuse {
-        0.0
+        T::zero()
     } else {
-        libm::sqrt((hypotenuse - length) * (hypotenuse + length))
+        ((hypotenuse - length) * (hypotenuse + length)).sqrt()
     }
 }
 
@@ -602,13 +673,16 @@ pub fn calculate_adjacent_length(length: f64, hypotenuse: f64) -> f64 {
 /// returns the length of the other side.
 /// zero if a >= c or c if a <= 0.
 #[must_use]
-pub fn spherical_adjacent_length(a: Radians, c: Radians) -> Radians {
-    if a <= Radians(0.0) {
+pub fn spherical_adjacent_length<T: Float + FloatConst>(
+    a: Radians<T>,
+    c: Radians<T>,
+) -> Radians<T> {
+    if a <= Radians(T::zero()) {
         c
     } else if a >= c {
-        Radians(0.0)
+        Radians(T::zero())
     } else {
-        Radians(libm::acos(libm::cos(c.0) / libm::cos(a.0)))
+        Radians((c.0.cos() / a.0.cos()).acos())
     }
 }
 
@@ -620,13 +694,16 @@ pub fn spherical_adjacent_length(a: Radians, c: Radians) -> Radians {
 ///
 /// returns the length of the hypotenuse.
 #[must_use]
-pub fn spherical_hypotenuse_length(a: Radians, b: Radians) -> Radians {
-    if a <= Radians(0.0) {
+pub fn spherical_hypotenuse_length<T: Float + FloatConst>(
+    a: Radians<T>,
+    b: Radians<T>,
+) -> Radians<T> {
+    if a <= Radians(T::zero()) {
         b
-    } else if b <= Radians(0.0) {
+    } else if b <= Radians(T::zero()) {
         a
     } else {
-        Radians(libm::acos(libm::cos(a.0) * libm::cos(b.0)))
+        Radians((a.0.cos() * b.0.cos()).acos())
     }
 }
 
@@ -639,8 +716,11 @@ pub fn spherical_hypotenuse_length(a: Radians, b: Radians) -> Radians {
 ///
 /// return the length of the opposite side.
 #[must_use]
-pub fn spherical_cosine_rule(cos_angle: UnitNegRange, length: Radians) -> Radians {
-    Radians(libm::atan(cos_angle.0 * libm::tan(length.0)))
+pub fn spherical_cosine_rule<T: Float + FloatConst>(
+    cos_angle: UnitNegRange<T>,
+    length: Radians<T>,
+) -> Radians<T> {
+    Radians((cos_angle.0 * length.0.tan()).atan())
 }
 
 #[cfg(test)]
@@ -657,7 +737,7 @@ mod tests {
         let one_clone = one.clone();
         assert_eq!(one_clone, one);
 
-        let minus_one: UnitNegRange = -one;
+        let minus_one = -one;
         assert_eq!(minus_one, UnitNegRange(-1.0));
         assert!(minus_one < one);
         assert_eq!(one, minus_one.abs());
@@ -735,15 +815,15 @@ mod tests {
     #[test]
     fn test_small_angle_conversion() {
         // Test angle == sine(angle) for MAX_LINEAR_SIN_ANGLE
-        assert_eq!(MAX_LINEAR_SIN_ANGLE.0, sine(MAX_LINEAR_SIN_ANGLE).0);
+        assert_eq!(MAX_LINEAR_SIN_ANGLE, sine(Radians(MAX_LINEAR_SIN_ANGLE)).0);
 
         // Test cos(angle) == cosine(angle) for MAX_COS_ANGLE_IS_ONE
-        let s = sine(MAX_COS_ANGLE_IS_ONE);
+        let s = sine(Radians(MAX_COS_ANGLE_IS_ONE));
         assert_eq!(
-            MAX_COS_ANGLE_IS_ONE.0.cos(),
-            cosine(MAX_COS_ANGLE_IS_ONE, s).0
+            MAX_COS_ANGLE_IS_ONE.cos(),
+            cosine(Radians(MAX_COS_ANGLE_IS_ONE), s).0
         );
-        assert_eq!(1.0, MAX_COS_ANGLE_IS_ONE.0.cos());
+        assert_eq!(1.0, MAX_COS_ANGLE_IS_ONE.cos());
 
         // Test max angle where conventional cos(angle) == 1.0
         let angle = Radians(4.74e7 * f64::EPSILON);
