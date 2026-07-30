@@ -33,6 +33,10 @@ by its sine and cosine as the coordinates of a
 The `Angle` struct enables more accurate calculations of angle rotations and
 conversions to and from `degrees` or `radians`.
 
+This version of the library uses the generic [num-traits](https://crates.io/crates/num-traits)
+`Float` type.\
+The last non-generic version is `1.1.5`, where all types are based on `f64`.
+
 ## Features
 
 * `Degrees`, `Radians` and `Angle` types;
