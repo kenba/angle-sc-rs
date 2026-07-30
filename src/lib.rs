@@ -444,8 +444,7 @@ impl<T: Float> Angle<T> {
     /// Normalizes the values.
     #[must_use]
     pub fn from_y_x(y: T, x: T) -> Self {
-        // let length = libm::hypot(y, x);
-        let length = (y * y + x * x).sqrt();
+        let length = y.hypot(x);
 
         if is_small(length, T::epsilon()) {
             Self::default()

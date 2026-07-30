@@ -357,25 +357,15 @@ where
 ///
 /// Panics if it cannot convert value to Float.
 #[must_use]
-pub fn arctan2<T>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Radians<T>
-where
-    T: Float + FloatConst,
-    f64: From<T>,
-{
+pub fn arctan2<T: Float + FloatConst>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Radians<T> {
     let sin_abs = sin.0.abs();
     let cos_abs = cos.0.abs();
 
     // calculate radians in the range 0.0..=PI/2
     let radians_pi_2 = match sin_abs.partial_cmp(&cos_abs).expect("sin or cos is NaN") {
         Ordering::Equal => T::FRAC_PI_4(),
-        Ordering::Less => {
-            let value = libm::atan2(f64::from(sin_abs), f64::from(cos_abs));
-            T::from(value).expect("Could not convert value to Float")
-        }
-        Ordering::Greater => {
-            let value = libm::atan2(f64::from(cos_abs), f64::from(sin_abs));
-            T::FRAC_PI_2() - T::from(value).expect("Could not convert value to Float")
-        }
+        Ordering::Less => sin_abs.atan2(cos_abs),
+        Ordering::Greater => T::FRAC_PI_2() - cos_abs.atan2(sin_abs),
     };
 
     // calculate radians in the range 0.0..=PI
@@ -449,18 +439,13 @@ where
 ///
 /// Converts sin of 0.5 to 30°.
 #[must_use]
-fn arctan2_degrees<T>(sin_abs: T, cos_abs: T) -> T
-where
-    T: Float + FloatConst,
-    f64: From<T>,
-{
+fn arctan2_degrees<T: Float + FloatConst>(sin_abs: T, cos_abs: T) -> T {
     let half = T::one() / (T::one() + T::one());
     let thirty = T::from(THIRTY).expect("Could not convert constant to Float");
     if sin_abs == half {
         thirty
     } else {
-        let value = libm::atan2(f64::from(sin_abs), f64::from(cos_abs)).to_degrees();
-        T::from(value).expect("Could not convert value to Float")
+        sin_abs.atan2(cos_abs).to_degrees()
     }
 }
 
