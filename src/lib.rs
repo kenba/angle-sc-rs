@@ -820,22 +820,14 @@ where
     }
 }
 
-impl<T> From<Angle<T>> for Radians<T>
-where
-    T: Float + FloatConst,
-    f64: From<T>,
-{
+impl<T: Float + FloatConst> From<Angle<T>> for Radians<T> {
     /// Convert an Angle to Radians.
     fn from(a: Angle<T>) -> Self {
         trig::arctan2(a.sin, a.cos)
     }
 }
 
-impl<T> From<Angle<T>> for Degrees<T>
-where
-    T: Float + FloatConst,
-    f64: From<T>,
-{
+impl<T: Float + FloatConst> From<Angle<T>> for Degrees<T> {
     /// Convert an Angle to Degrees.
     fn from(a: Angle<T>) -> Self {
         trig::arctan2d(a.sin, a.cos)
@@ -845,7 +837,6 @@ where
 impl<T> Serialize for Angle<T>
 where
     T: Float + FloatConst + Serialize,
-    f64: From<T>,
 {
     /// Serialize an Angle to an value in Degrees.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

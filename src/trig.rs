@@ -458,11 +458,7 @@ fn arctan2_degrees<T: Float + FloatConst>(sin_abs: T, cos_abs: T) -> T {
 ///
 /// Panics if `sin` or `cos` are `NaN`.
 #[must_use]
-pub fn arctan2d<T>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Degrees<T>
-where
-    T: Float + FloatConst,
-    f64: From<T>,
-{
+pub fn arctan2d<T: Float + FloatConst>(sin: UnitNegRange<T>, cos: UnitNegRange<T>) -> Degrees<T> {
     let forty_five = T::from(FORTY_FIVE).expect("Could not convert constant to Float");
     let ninety = forty_five + forty_five;
     let one_eighty = ninety + ninety;
